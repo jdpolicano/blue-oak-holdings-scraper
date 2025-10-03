@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2022", // or a newer version like "esnext"
+    "module": "nodenext", // or "esnext", "amd", "umd", etc.
+    "moduleResolution": "nodenext",
+    "strict": true, // Enables a wide range of stricter type-checking options
+    "esModuleInterop": true, // Allows default imports from modules with no default export
+    "skipLibCheck": true, // Skips type checking of declaration files
+    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
+    "outDir": "./dist", // Specifies the output directory for compiled JavaScript
+    "rootDir": "./src" // Specifies the root directory of input files
+  },
+  "include": ["src/**/*.ts"], // Specifies files to include in the compilation
+  "exclude": ["node_modules"] // Specifies files to exclude from the compilation
+}
