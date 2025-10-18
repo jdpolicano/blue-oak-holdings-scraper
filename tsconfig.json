@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2022", // or a newer version like "esnext"
+    "target": "esnext", // or a newer version like "esnext"
     "module": "nodenext", // or "esnext", "amd", "umd", etc.
     "moduleResolution": "nodenext",
     "strict": true, // Enables a wide range of stricter type-checking options
