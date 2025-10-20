@@ -53,6 +53,7 @@ export class S3StorageStreamed implements Storage {
     for (const listing of listings) {
       if (this.idsSet.has(listing.id)) continue;
       this.newListings.push(listing);
+      this.idsSet.add(listing.id);
     }
   }
 
