@@ -115,5 +115,3 @@ Outputs:
     Value: !Ref LambdaFunction
   BucketName:
     Value: !Ref DataBucket
-  Schedule:
-    Value: !Ref ScheduleExpression
