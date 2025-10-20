@@ -95,7 +95,7 @@ Resources:
     Type: AWS::Scheduler::Schedule
     Properties:
       FlexibleTimeWindow:
-        Mode: "FLEXIBLE"
+        Mode: "OFF"
       ScheduleExpression: "cron(0 18 * * ? *)" # 6:00 pm local
       ScheduleExpressionTimezone: "America/New_York" # 👈 handles DST
       Target:
