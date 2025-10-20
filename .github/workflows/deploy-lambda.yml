@@ -22,19 +22,24 @@ jobs:
           aws-region: us-east-1
 
       # 1️⃣ Build and publish the Lambda Layer
-      - name: Build and publish Chromium layer
-        working-directory: layer
+      - name: Build Chromium Layer
         run: |
-          cd nodejs
-          npm ci
-          cd ..
-          zip -r9 ../chromium-layer.zip .
-          LAYER_VERSION=$(aws lambda publish-layer-version \
+          archType="x64"
+          bucketName="boh-lambda-artifacts"
+          git clone --depth=1 https://github.com/sparticuz/chromium.git
+          cd chromium
+          versionNumber=$(jq -r .version package.json)
+          make chromium.${archType}.zip
+          aws s3 cp chromium.${archType}.zip "s3://${bucketName}/layers/chromium-${versionNumber}-layer.${archType}.zip"
+          LAYER_VERSION_ARN=$(aws lambda publish-layer-version \
             --layer-name boh-scrape-chromium-layer \
-            --zip-file fileb://../chromium-layer.zip \
-            --compatible-runtimes nodejs20.x \
-            --query 'Version' --output text)
-          echo "LAYER_VERSION=$LAYER_VERSION" >> $GITHUB_ENV
+            --description "Chromium ${versionNumber} for ${archType}" \
+            --content "S3Bucket=${bucketName},S3Key=layers/chromium-${versionNumber}-layer.${archType}.zip" \
+            --compatible-runtimes nodejs20.x nodejs22.x \
+            --compatible-architectures x86_64 \
+            --query 'LayerVersionArn' \
+            --output text)
+          echo "LAYER_VERSION_ARN=$LAYER_VERSION_ARN" >> $GITHUB_ENV
 
       # 2️⃣ Build Lambda zip
       - name: Build production Lambda zip
@@ -57,6 +62,6 @@ jobs:
             --stack-name csv-headless \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              ChromiumLayerArn=$LAYER_ARN \
+              ChromiumLayerArn=$LAYER_VERSION_ARN \
               SesFromAddress=${{ secrets.SES_FROM_ADDRESS }} \
               SesToAddresses=${{ secrets.SES_TO_ADDRESSES }}
