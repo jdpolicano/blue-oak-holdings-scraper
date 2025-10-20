@@ -12,6 +12,7 @@ import {
 } from "./adapters/index.js";
 import { MemoryStorage, S3StorageStreamed } from "./core/storage/index.js";
 import { ScrapeHandle } from "./core/scrape.js";
+// @ts-ignore: This module does not have type definitions
 import awsChromium from "@sparticuz/chromium";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
