@@ -1,5 +1,5 @@
 import pino from "pino";
-import { createScrapeHandle, createNotifier, IS_LAMDA } from "./setup.js";
+import { createScrapeHandle, createNotifier, IS_LAMBDA } from "./setup.js";
 
 const logger = pino({
   level: process.env.LOG_LEVEL || "info",
@@ -15,6 +15,6 @@ export const handler = async (_: unknown) => {
 };
 
 // in local dev environment, run the handler immediately
-if (!IS_LAMDA) {
+if (!IS_LAMBDA) {
   handler(null);
 }

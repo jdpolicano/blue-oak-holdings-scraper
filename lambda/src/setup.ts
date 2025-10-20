@@ -16,10 +16,10 @@ import awsChromium from "@sparticuz/chromium";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 
-export const IS_LAMDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+export const IS_LAMBDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
 export async function createStorageAdapter(logger: Logger) {
-  return IS_LAMDA
+  return IS_LAMBDA
     ? S3StorageStreamed.create(
         process.env.S3_BUCKET_NAME!,
         process.env.S3_OBJECT_KEY!,
@@ -32,7 +32,7 @@ export async function createStorageAdapter(logger: Logger) {
 }
 
 export function createNotifier(logger: Logger) {
-  return IS_LAMDA
+  return IS_LAMBDA
     ? new SESNotifier(
         process.env.SES_FROM_ADDRESS!,
         process.env.SES_TO_ADDRESSES!.split(","),
@@ -57,7 +57,7 @@ export async function createScrapeHandle(logger: Logger) {
 
   const storage = await createStorageAdapter(logger);
 
-  return IS_LAMDA
+  return IS_LAMBDA
     ? ScrapeHandle.create({
         logger: logger.child({ component: ScrapeHandle.name }),
         sites,

@@ -53,10 +53,10 @@ Resources:
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-lambda"
+      FunctionName: !Sub "${AWS::StackName}-scrape-handler"
       Role: !GetAtt LambdaRole.Arn
       Runtime: nodejs20.x
-      Handler: dist/index.handler
+      Handler: dist/handler.handler
       Code:
         S3Bucket: boh-lambda-artifacts # or use aws cloudformation package
         S3Key: lambda.zip

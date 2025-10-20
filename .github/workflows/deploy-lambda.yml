@@ -46,6 +46,7 @@ jobs:
         working-directory: lambda
         run: |
           npm ci --omit=dev
+          npm run build
           zip -r ../lambda.zip dist templates node_modules
 
       # 3️⃣ Upload Lambda zip to S3
