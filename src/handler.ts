@@ -1,46 +1,20 @@
-import {
-  SunbeltNetwork,
-  TheDynastyBA,
-  TWorld,
-  TheCBAGroup,
-  BizBuySell,
-  Enlign,
-  VRBusinessBrokers,
-  FCBB,
-  VikingMergers,
-  BeaconAdvisors,
-  Midstreet,
-  BAMA,
-  BatonMarket,
-  MorganWestfield,
-} from "./adapters/index.js";
-import { ScrapeHandle } from "./core/scrape.js";
 import pino from "pino";
+import { createScrapeHandle, createNotifier, IS_LAMDA } from "./setup.js";
 
-const logger = pino();
+const logger = pino({
+  level: process.env.LOG_LEVEL || "info",
+});
 
 export const handler = async (_: unknown) => {
-  const sites = [
-    new Enlign(),
-    new BizBuySell(),
-    new TheCBAGroup(),
-    new TWorld(),
-    new TheDynastyBA(),
-    new SunbeltNetwork(),
-    new VRBusinessBrokers(),
-    new FCBB(),
-    new VikingMergers(),
-    new BeaconAdvisors(),
-    new Midstreet(),
-    new BAMA(),
-    new BatonMarket(),
-    new MorganWestfield(),
-  ];
-  const handle = await ScrapeHandle.create({
-    logger,
-    sites,
-  });
-  await handle.run();
+  const handle = await createScrapeHandle(logger);
+  const newListings = await handle.run();
+  if (newListings.length > 0) {
+    const notifier = createNotifier(logger);
+    await notifier.notify(newListings);
+  }
 };
 
-handler(null);
+// in local dev environment, run the handler immediately
+if (!IS_LAMDA) {
+  handler(null);
+}

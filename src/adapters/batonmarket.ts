@@ -1,5 +1,5 @@
 import { BaseApiObject, SiteStrategy } from "./base.js";
-import { Listing } from "../core/listing.js";
+import { Listing } from "../core/models/listing.js";
 import { Graffle } from "graffle";
 import { Logger } from "pino";
 

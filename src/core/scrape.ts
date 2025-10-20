@@ -1,26 +1,28 @@
 import { Logger } from "pino";
-import { Browser, Page } from "playwright";
+import { Browser, Page, LaunchOptions } from "playwright";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
-import { Parser } from "@json2csv/plainjs";
+import { Storage } from "./storage/index.js";
+import { Listing } from "./models/listing.js";
 
 import {
   BaseApiObject,
   BasePageObjectPaginated,
-  BasePageObjectHuman,
   BaseScrapeObject,
   SiteStrategy,
 } from "../adapters/base.js";
-import fs from "node:fs/promises";
-import { PageRunner } from "./page.js";
-import { Listing } from "./listing.js";
+import { PageRunner } from "./browser/page.js";
 
 export interface ScrapeOptions {
   logger: Logger;
   // Instead of ready PageRunner instances, pass the *constructors* (or factories)
   sites: BaseScrapeObject[];
+  // storage mechanism to use.
+  storage: Storage; // default to in-memory
   // how many items to queue at once.
   concurrency?: number; // default to 3
+  // launch options for the browser.
+  browserOptions?: LaunchOptions;
 }
 
 interface ScrapeOptionsInternal {
@@ -31,13 +33,18 @@ interface ScrapeOptionsInternal {
   browser: Browser; // optional, if not provided, a new browser will be launched,
   // page
   pages: Page[];
+  // storage mechanism
+  storage: Storage; // default to in-memory
 }
 
 interface ListingTaskApi {
+  strategy: SiteStrategy.Api;
   siteHandler: BaseApiObject;
+  url: undefined;
 }
 
 interface ListingTaskBrowser {
+  strategy: SiteStrategy.Paginated;
   siteHandler: BasePageObjectPaginated;
   url: string;
 }
@@ -50,37 +57,42 @@ type ListingTask = ListingTaskApi | ListingTaskBrowser;
 export class ScrapeHandle {
   private logger: Logger;
   private sites: BaseScrapeObject[];
-  private listings: Listing[] = [];
+  private storage: Storage;
   private browser: Browser;
   private pages: Page[] = [];
   private queue: ListingTask[] = [];
-  private seenIds: Map<string, Listing> = new Map(); // to track seen listing IDs
 
   private constructor({
     logger,
     sites,
     browser,
     pages,
+    storage,
   }: ScrapeOptionsInternal) {
-    this.logger = logger;
+    this.logger = logger.child({ component: ScrapeHandle.name });
     this.sites = sites;
     this.browser = browser;
     this.pages = pages;
+    this.storage = storage;
   }
 
   static async create(options: ScrapeOptions) {
     chromium.use(stealth());
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch(options.browserOptions || {});
     const numPages = options.concurrency || 3;
     const pages: Page[] = [];
     for (let i = 0; i < numPages; i++) {
       const page = await browser.newPage();
       pages.push(page);
     }
-    return new ScrapeHandle({ ...options, pages, browser });
+    return new ScrapeHandle({
+      ...options,
+      pages,
+      browser,
+    });
   }
 
-  async run() {
+  async run(): Promise<Listing[]> {
     await this.enqueueTasks();
     const chunks = chunkArray(this.queue, this.pages.length);
     this.logger.info(
@@ -90,33 +102,20 @@ export class ScrapeHandle {
 
     for (const [_, chunk] of chunks.entries()) {
       const tasks = chunk.map((task, i) => {
-        if (task.siteHandler.siteStrategy === SiteStrategy.Api) {
+        if (task.strategy === SiteStrategy.Api) {
           return this.processApi(task.siteHandler);
         } else {
-          return this.processUrl(
-            this.pages[i],
-            (task as ListingTaskBrowser).url,
-            task.siteHandler,
-          );
+          return this.processUrl(this.pages[i], task.url, task.siteHandler);
         }
       });
       await Promise.all(tasks);
     }
-
-    if (this.listings.length) {
-      const outPath = "./listings.csv";
-      const parser = new Parser();
-      const csv = parser.parse(this.listings);
-      await fs.writeFile(outPath, csv, { encoding: "utf-8" });
-      this.logger.info(
-        { count: this.listings.length, path: outPath },
-        "Listings saved",
-      );
-    }
+    const newListings = await this.storage.finalize();
     await this.browser.close();
     for (const page of this.pages) {
       await page.close();
     }
+    return newListings;
   }
 
   async processApi(siteHandler: BaseApiObject) {
@@ -125,13 +124,11 @@ export class ScrapeHandle {
         this.logger.child({ site: siteHandler.site }),
       );
       if (listings.length) {
-        const uniqueListings = this.filterUniqueListings(listings, siteHandler);
-        this.listings.push(...uniqueListings);
+        await this.storage.appendListing(...listings);
         this.logger.info(
           {
             site: siteHandler.site,
             total: listings.length,
-            unique: uniqueListings.length,
           },
           "Listings found",
         );
@@ -153,7 +150,11 @@ export class ScrapeHandle {
   ) {
     try {
       const runner = new PageRunner(
-        this.logger.child({ site: siteHandler.site, url: siteUrl }),
+        this.logger.child({
+          site: siteHandler.site,
+          url: siteUrl,
+          component: "page-runner",
+        }),
       );
       const listings = await runner.getListingsPaginated(
         page,
@@ -161,14 +162,12 @@ export class ScrapeHandle {
         siteHandler,
       );
       if (listings.length) {
-        const uniqueListings = this.filterUniqueListings(listings, siteHandler);
-        this.listings.push(...uniqueListings);
+        await this.storage.appendListing(...listings);
         this.logger.info(
           {
             site: siteHandler.site,
-            total: listings.length,
-            unique: uniqueListings.length,
             url: siteUrl,
+            total: listings.length,
           },
           "Listings found",
         );
@@ -181,34 +180,6 @@ export class ScrapeHandle {
         "Error scraping",
       );
     }
-  }
-
-  private filterUniqueListings(
-    listings: Listing[],
-    siteHandler: BaseScrapeObject,
-  ): Listing[] {
-    return listings.filter((listing) => {
-      if (this.seenIds.has(listing.id)) {
-        const existing = this.seenIds.get(listing.id);
-        this.logger.warn(
-          {
-            site: siteHandler.site,
-            id: listing.id,
-            title: listing.title,
-            href: listing.href,
-            url: listing.url,
-            existingId: existing?.id,
-            exisistingTitle: existing?.title,
-            existingHref: existing?.href,
-            existingUrl: existing?.url,
-          },
-          "Duplicate listing found, skipping",
-        );
-        return false;
-      }
-      this.seenIds.set(listing.id, listing);
-      return true;
-    });
   }
 
   async enqueueTasks() {
@@ -228,7 +199,11 @@ export class ScrapeHandle {
     try {
       const urls = await site.getUrls(page);
       for (const url of urls) {
-        this.queue.push({ url, siteHandler: site });
+        this.queue.push({
+          url,
+          siteHandler: site,
+          strategy: site.siteStrategy,
+        });
       }
     } catch (err) {
       this.logger.error({ site: site.site, err }, "Error enqueuing paginated");
@@ -236,7 +211,11 @@ export class ScrapeHandle {
   }
 
   async enqueueApi(site: BaseApiObject) {
-    this.queue.push({ siteHandler: site });
+    this.queue.push({
+      siteHandler: site,
+      strategy: site.siteStrategy,
+      url: undefined,
+    });
   }
 }
 

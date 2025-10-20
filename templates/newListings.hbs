@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      h2 {
+        color: #2c3e50;
+      }
+      ul {
+        padding-left: 1em;
+      }
+      li {
+        margin-bottom: 0.5em;
+      }
+      a {
+        color: #1b7fed;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>New Listings Found</h2>
+    <p>We discovered <b>{{listings.length}}</b> new listings:</p>
+
+    <ul>
+      {{#each listings}}
+        <li>
+          <a href="{{href}}" target="_blank">{{title}}</a>
+          {{#if site}} — <em>{{site}}</em>{{/if}}
+        </li>
+      {{/each}}
+    </ul>
+
+    <hr />
+    <p style="font-size: 12px; color: #888;">
+      Generated automatically at {{generatedAt}}
+    </p>
+  </body>
+</html>

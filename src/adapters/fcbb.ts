@@ -45,7 +45,6 @@ export class FCBB implements BasePageObjectPaginated {
       url.searchParams.set("page", pageNum.toString());
       urls.push(url.toString());
     }
-    console.log(urls);
     return urls;
   }
 }
