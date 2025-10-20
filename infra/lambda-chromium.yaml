@@ -71,6 +71,25 @@ Resources:
           SES_FROM_ADDRESS: !Ref SesFromAddress
           SES_TO_ADDRESSES: !Ref SesToAddresses
 
+  SchedulerInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt LambdaFunction.Arn
+
   # The actual schedule at 6:00pm ET (with DST handled)
   Daily6pmET:
     Type: AWS::Scheduler::Schedule
@@ -88,8 +107,8 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref LambdaFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt ScheduleRule.Arn
+      Principal: scheduler.amazonaws.com
+      SourceArn: !GetAtt Daily6pmET.Arn
 
 Outputs:
   LambdaName:
