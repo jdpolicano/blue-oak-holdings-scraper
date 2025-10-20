@@ -1,0 +1,63 @@
+name: Deploy Lambda and Layer
+
+on:
+  workflow_dispatch: {} # Manual trigger
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
+      # 1️⃣ Build and publish the Lambda Layer
+      - name: Build and publish Chromium layer
+        working-directory: layer
+        run: |
+          cd nodejs
+          npm ci
+          cd ..
+          zip -r9 ../chromium-layer.zip .
+          LAYER_VERSION=$(aws lambda publish-layer-version \
+            --layer-name boh-scrape-chromium-layer \
+            --zip-file fileb://../chromium-layer.zip \
+            --compatible-runtimes nodejs20.x \
+            --query 'Version' --output text)
+          echo "LAYER_VERSION=$LAYER_VERSION" >> $GITHUB_ENV
+
+      # 2️⃣ Build Lambda zip
+      - name: Build production Lambda zip
+        working-directory: lambda
+        run: |
+          npm ci --omit=dev
+          zip -r ../lambda.zip dist templates node_modules
+
+      # 3️⃣ Upload Lambda zip to S3
+      - name: Upload Lambda to S3
+        run: |
+          aws s3 cp lambda.zip s3://boh-lambda-artifacts/lambda.zip
+
+      # 4️⃣ Deploy CloudFormation stack
+      - name: Deploy CloudFormation
+        run: |
+          LAYER_ARN="arn:aws:lambda:us-east-1:${{ secrets.AWS_ACCOUNT_ID }}:layer:boh-scrape-chromium-layer:${{ env.LAYER_VERSION }}"
+          aws cloudformation deploy \
+            --template-file infra/infra-lambda.yaml \
+            --stack-name csv-headless \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              ChromiumLayerArn=$LAYER_ARN \
+              SesFromAddress=${{ secrets.SES_FROM_ADDRESS }} \
+              SesToAddresses=${{ secrets.SES_TO_ADDRESSES }}

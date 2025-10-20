@@ -16,3 +16,4 @@ export interface Storage {
 }
 
 export { MemoryStorage } from "./memory.js";
+export { S3StorageStreamed } from "./s3.js";

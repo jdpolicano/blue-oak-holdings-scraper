@@ -10,7 +10,7 @@ import {
   BAMA,
   MorganWestfield,
 } from "./adapters/index.js";
-import { MemoryStorage } from "./core/storage/index.js";
+import { MemoryStorage, S3StorageStreamed } from "./core/storage/index.js";
 import { ScrapeHandle } from "./core/scrape.js";
 import awsChromium from "@sparticuz/chromium";
 import { Logger } from "pino";
@@ -19,11 +19,16 @@ import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 export const IS_LAMDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
 export async function createStorageAdapter(logger: Logger) {
-  const storage = await MemoryStorage.create(
-    "listings.csv",
-    logger.child({ component: MemoryStorage.name }),
-  );
-  return storage;
+  return IS_LAMDA
+    ? S3StorageStreamed.create(
+        process.env.S3_BUCKET_NAME!,
+        process.env.S3_OBJECT_KEY!,
+        logger.child({ component: S3StorageStreamed.name }),
+      )
+    : MemoryStorage.create(
+        "listings.csv",
+        logger.child({ component: MemoryStorage.name }),
+      );
 }
 
 export function createNotifier(logger: Logger) {
