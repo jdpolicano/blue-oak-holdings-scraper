@@ -61,7 +61,7 @@ Resources:
         S3Bucket: boh-lambda-artifacts # or use aws cloudformation package
         S3Key: lambda.zip
       Timeout: 900
-      MemorySize: 4096
+      MemorySize: 3008
       Layers:
         - !Ref ChromiumLayerArn
       Environment:
