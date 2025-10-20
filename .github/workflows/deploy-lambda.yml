@@ -47,7 +47,7 @@ jobs:
         run: |
           npm ci --omit=dev
           npm run build
-          zip -r ../lambda.zip dist templates node_modules
+          zip -r ../lambda.zip dist templates node_modules package.json
 
       # 3️⃣ Upload Lambda zip to S3
       - name: Upload Lambda to S3
