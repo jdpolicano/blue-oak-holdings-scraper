@@ -15,7 +15,7 @@ import { ScrapeHandle } from "./core/scrape.js";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 
-const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
+export const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
 
 export async function createStorageAdapter(logger: Logger) {
   return IS_FARGATE
@@ -43,15 +43,15 @@ export function createNotifier(logger: Logger) {
 export async function createScrapeHandle(logger: Logger) {
   const sites = [
     new TheDynastyBA(),
-    new Enlign(),
-    new TheCBAGroup(),
-    new VRBusinessBrokers(),
-    new FCBB(),
-    new VikingMergers(),
-    new BeaconAdvisors(),
-    new Midstreet(),
-    new BAMA(),
-    new MorganWestfield(),
+    // new Enlign(),
+    // new TheCBAGroup(),
+    // new VRBusinessBrokers(),
+    // new FCBB(),
+    // new VikingMergers(),
+    // new BeaconAdvisors(),
+    // new Midstreet(),
+    // new BAMA(),
+    // new MorganWestfield(),
   ];
 
   const storage = await createStorageAdapter(logger);

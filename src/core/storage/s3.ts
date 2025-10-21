@@ -2,7 +2,10 @@ import {
   S3Client,
   GetObjectCommand,
   PutObjectCommand,
+  CopyObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { parse, stringify } from "csv";
 import { pipeline } from "stream/promises";
 import { Readable, PassThrough } from "stream";
@@ -56,7 +59,8 @@ export class S3StorageStreamed implements Storage {
       this.idsSet.add(listing.id);
     }
   }
-
+  /** Main entrypoint — orchestrates merge + upload */
+  /** Main entrypoint — orchestrates merge + upload */
   async finalize(): Promise<Listing[]> {
     if (this.newListings.length === 0) {
       this.logger.info("No new listings to append.");
@@ -65,45 +69,120 @@ export class S3StorageStreamed implements Storage {
 
     this.logger.info(`Streaming merge to s3://${this.bucket}/${this.key}`);
 
-    const parser = parse({ columns: true, skip_empty_lines: true });
-    const stringifier = stringify({ header: true });
-    const pass = new PassThrough();
-
-    const uploadPromise = this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: this.key,
-        Body: pass,
-        ContentType: "text/csv",
-      }),
-    );
+    const tempKey = this.getTempKey();
 
     try {
-      const res = await this.s3.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: this.key }),
-      );
-      const existingStream = res.Body as Readable;
+      await this.streamMergeToTemp(tempKey);
+      await this.replaceOriginalWithTemp(tempKey);
 
-      await pipeline(
-        existingStream,
-        parser,
-        async function* (this: S3StorageStreamed, source: any) {
-          for await (const record of source) yield record;
-          for (const listing of this.newListings) yield listing;
-        }.bind(this),
-        stringifier,
-        pass,
+      this.logger.info(
+        `Appended ${this.newListings.length} new listings to s3://${this.bucket}/${this.key}`,
       );
+      return this.newListings;
     } catch (err: any) {
-      this.logger.error(err);
-      if (err.name === "NoSuchKey") {
-        this.logger.error("No existing CSV found");
-      }
-      pass.end();
+      this.logger.error(err, "Error during finalize, cleaning up temp file");
+      await this.cleanupTempKey(tempKey);
       throw err;
     }
+  }
+
+  /** Builds a unique temporary key name for safe overwrite */
+  private getTempKey(): string {
+    return `${this.key}.tmp-${Date.now()}`;
+  }
+
+  /** Downloads existing CSV (if any), merges new listings, and uploads to a temp object */
+  private async streamMergeToTemp(tempKey: string): Promise<void> {
+    const pass = new PassThrough();
+    const uploadPromise = this.uploadTempFile(tempKey, pass);
+
+    try {
+      const existing = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: this.key }),
+      );
+      const existingStream = existing.Body as Readable;
+      await this.mergeCsvStreams(existingStream, pass);
+    } catch (err: any) {
+      if (err.name === "NoSuchKey") {
+        this.logger.info("No existing file found, creating new CSV");
+        await this.writeNewCsv(pass);
+      } else {
+        pass.end();
+        throw err;
+      }
+    }
+
     await uploadPromise;
-    this.logger.info("Upload complete (streamed).");
-    return this.newListings;
+  }
+
+  /** Pipes existing + new records into a CSV stream */
+  private async mergeCsvStreams(
+    source: Readable,
+    destination: PassThrough,
+  ): Promise<void> {
+    await pipeline(
+      source,
+      parse({ columns: true, skip_empty_lines: true }),
+      async function* (this: S3StorageStreamed, parsed: any) {
+        for await (const record of parsed) yield record;
+        for (const listing of this.newListings) yield listing;
+      }.bind(this),
+      stringify({ header: true }),
+      destination,
+    );
+  }
+
+  /** Uploads the temp object to S3 */
+  private async uploadTempFile(
+    tempKey: string,
+    body: PassThrough,
+  ): Promise<void> {
+    // use upload from lib-storage for multipart upload support
+    const upload = new Upload({
+      client: this.s3,
+      params: {
+        Bucket: this.bucket,
+        Key: tempKey,
+        Body: body,
+        ContentType: "text/csv",
+      },
+    });
+    await upload.done();
+  }
+
+  /** Writes only new listings when the original file doesn't exist */
+  private async writeNewCsv(destination: PassThrough): Promise<void> {
+    const csvStringifier = stringify({ header: true });
+    await pipeline(
+      Readable.from(this.newListings),
+      csvStringifier,
+      destination,
+    );
+  }
+
+  /** Replaces the original object with the temp one atomically */
+  private async replaceOriginalWithTemp(tempKey: string): Promise<void> {
+    await this.s3.send(
+      new CopyObjectCommand({
+        Bucket: this.bucket,
+        CopySource: `${this.bucket}/${tempKey}`,
+        Key: this.key,
+      }),
+    );
+    await this.cleanupTempKey(tempKey);
+  }
+
+  /** Deletes the temp object */
+  private async cleanupTempKey(tempKey: string): Promise<void> {
+    try {
+      await this.s3.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: tempKey,
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(err, `Failed to clean up temp key ${tempKey}:`);
+    }
   }
 }

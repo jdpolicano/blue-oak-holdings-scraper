@@ -38,5 +38,7 @@ export class SESNotifier extends BaseNotifier implements Notifier {
         Source: this.sender,
       }),
     );
+
+    this.logger.info(`Sent notification for ${listings.length} new listings.`);
   }
 }

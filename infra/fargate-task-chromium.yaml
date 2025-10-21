@@ -23,6 +23,7 @@ Resources:
     Properties:
       ClusterName: blue-oak-holdings-scrape-cluster
 
+  # 🚀 Role ECS uses for pulling image + logs
   TaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -35,15 +36,27 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # 🧠 Role your app uses inside the container for S3/SES
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
       Policies:
-        - PolicyName: ScraperAccess
+        - PolicyName: ScraperRuntimeAccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - s3:PutObject
                   - s3:GetObject
+                  - s3:PutObject
                   - s3:ListBucket
                 Resource:
                   - !Sub arn:aws:s3:::${S3Bucket}
@@ -62,7 +75,8 @@ Resources:
       Memory: 4096
       NetworkMode: awsvpc
       RequiresCompatibilities: [FARGATE]
-      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn # for ECS service
+      TaskRoleArn: !GetAtt TaskRole.Arn # 👈 for app credentials
       ContainerDefinitions:
         - Name: blue-oak-holdings-scraper
           Image: !Ref ImageUri

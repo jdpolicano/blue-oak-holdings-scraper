@@ -79,7 +79,7 @@ export class ScrapeHandle {
   static async create(options: ScrapeOptions) {
     chromium.use(stealth());
     const browser = await chromium.launch(options.browserOptions || {});
-    const numPages = options.concurrency || 4;
+    const numPages = options.concurrency || 3;
     const pages: Page[] = [];
     for (let i = 0; i < numPages; i++) {
       const page = await browser.newPage();
