@@ -1,20 +1,17 @@
 import pino from "pino";
-import { createScrapeHandle, createNotifier, IS_LAMBDA } from "./setup.js";
+import { createScrapeHandle, createNotifier } from "./setup.js";
 
 const logger = pino({
   level: process.env.LOG_LEVEL || "info",
 });
 
-export const handler = async (_: unknown) => {
+try {
   const handle = await createScrapeHandle(logger);
   const newListings = await handle.run();
   if (newListings.length > 0) {
     const notifier = createNotifier(logger);
     await notifier.notify(newListings);
   }
-};
-
-// in local dev environment, run the handler immediately
-if (!IS_LAMBDA) {
-  handler(null);
+} catch (error) {
+  logger.error({ err: error }, "Error running scrape handler");
 }

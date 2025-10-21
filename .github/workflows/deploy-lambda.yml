@@ -21,40 +21,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # 1️⃣ Build and publish the Lambda Layer
-      - name: Build Chromium Layer
+      - name: Build and Push Docker Image
         run: |
-          archType="x64"
-          bucketName="boh-lambda-artifacts"
-          git clone --depth=1 https://github.com/sparticuz/chromium.git
-          cd chromium
-          versionNumber=$(jq -r .version package.json)
-          make chromium.${archType}.zip
-          aws s3 cp chromium.${archType}.zip "s3://${bucketName}/layers/chromium-${versionNumber}-layer.${archType}.zip"
-          LAYER_VERSION_ARN=$(aws lambda publish-layer-version \
-            --layer-name boh-scrape-chromium-layer \
-            --description "Chromium ${versionNumber} for ${archType}" \
-            --content "S3Bucket=${bucketName},S3Key=layers/chromium-${versionNumber}-layer.${archType}.zip" \
-            --compatible-runtimes nodejs20.x nodejs22.x \
-            --compatible-architectures x86_64 \
-            --query 'LayerVersionArn' \
-            --output text)
-          echo "LAYER_VERSION_ARN=$LAYER_VERSION_ARN" >> $GITHUB_ENV
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          docker build -t blue-oak-holdings-scraper .
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+          docker tag blue-oak-holdings-scraper:latest $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/blue-oak-holdings/scraper:latest
+          docker push $ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/blue-oak-holdings/scraper:latest
 
-      # 2️⃣ Build Lambda zip
-      - name: Build production Lambda zip
-        working-directory: lambda
-        run: |
-          npm ci --omit=dev
-          npm run build
-          zip -r ../lambda.zip dist templates node_modules package.json
-
-      # 3️⃣ Upload Lambda zip to S3
-      - name: Upload Lambda to S3
-        run: |
-          aws s3 cp lambda.zip s3://boh-lambda-artifacts/lambda.zip
-
-      # 4️⃣ Deploy CloudFormation stack
+      # 2 Deploy CloudFormation stack
       - name: Deploy CloudFormation
         run: |
           aws cloudformation deploy \
@@ -62,6 +37,5 @@ jobs:
             --stack-name boh-lambda \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              ChromiumLayerArn=$LAYER_VERSION_ARN \
               SesFromAddress=${{ secrets.SES_FROM_ADDRESS }} \
               SesToAddresses=${{ secrets.SES_TO_ADDRESSES }}

@@ -12,15 +12,13 @@ import {
 } from "./adapters/index.js";
 import { MemoryStorage, S3StorageStreamed } from "./core/storage/index.js";
 import { ScrapeHandle } from "./core/scrape.js";
-// @ts-ignore: This module does not have type definitions
-import awsChromium from "@sparticuz/chromium";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 
-export const IS_LAMBDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
 
 export async function createStorageAdapter(logger: Logger) {
-  return IS_LAMBDA
+  return IS_FARGATE
     ? S3StorageStreamed.create(
         process.env.S3_BUCKET_NAME!,
         process.env.S3_OBJECT_KEY!,
@@ -33,7 +31,7 @@ export async function createStorageAdapter(logger: Logger) {
 }
 
 export function createNotifier(logger: Logger) {
-  return IS_LAMBDA
+  return IS_FARGATE
     ? new SESNotifier(
         process.env.SES_FROM_ADDRESS!,
         process.env.SES_TO_ADDRESSES!.split(","),
@@ -58,19 +56,9 @@ export async function createScrapeHandle(logger: Logger) {
 
   const storage = await createStorageAdapter(logger);
 
-  return IS_LAMBDA
-    ? ScrapeHandle.create({
-        logger: logger.child({ component: ScrapeHandle.name }),
-        sites,
-        browserOptions: {
-          args: awsChromium.args,
-          executablePath: await awsChromium.executablePath(),
-        },
-        storage,
-      })
-    : ScrapeHandle.create({
-        logger,
-        sites,
-        storage,
-      });
+  return ScrapeHandle.create({
+    logger,
+    sites,
+    storage,
+  });
 }

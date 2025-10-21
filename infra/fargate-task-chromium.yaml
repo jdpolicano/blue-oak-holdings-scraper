@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Fargate scraper task triggered daily via EventBridge"
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/boh-scrape:latest)
+    Default: "137532962642.dkr.ecr.us-east-1.amazonaws.com/blue-oak-holdings/scraper:latest"
+  SesFromAddress:
+    Type: String
+  SesToAddresses:
+    Type: String
+  S3Bucket:
+    Type: String
+    Default: blue-oak-holdings
+  S3Key:
+    Type: String
+    Default: data/listings.csv
+
+Resources:
+  ScrapeCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: blue-oak-holdings-scrape-cluster
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ScraperAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${S3Bucket}
+                  - !Sub arn:aws:s3:::${S3Bucket}/*
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+
+  ScrapeTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: blue-oak-holdings-scrape-task
+      Cpu: 2048
+      Memory: 4096
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: blue-oak-holdings-scraper
+          Image: !Ref ImageUri
+          Essential: true
+          Environment:
+            - Name: S3_BUCKET_NAME
+              Value: !Ref S3Bucket
+            - Name: S3_OBJECT_KEY
+              Value: !Ref S3Key
+            - Name: SES_FROM_ADDRESS
+              Value: !Ref SesFromAddress
+            - Name: SES_TO_ADDRESSES
+              Value: !Ref SesToAddresses
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/blue-oak-holdings-scraper
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: ecs
+
+  ScrapeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/blue-oak-holdings-scraper
+      RetentionInDays: 14
+
+  ScheduledScrape:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "cron(0 23 * * ? *)" # 6pm ET = 23 UTC
+      Targets:
+        - Arn: !GetAtt ScrapeCluster.Arn
+          RoleArn: !GetAtt TaskExecutionRole.Arn
+          Id: "EcsFargateScrape"
+          EcsParameters:
+            LaunchType: FARGATE
+            TaskDefinitionArn: !Ref ScrapeTask
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                Subnets:
+                  - subnet-037b322b9edb1b49d
+                  - subnet-0fcd90afeaecc8fc2
+                  - subnet-082e0eef14ebe3a69
+                  - subnet-0e7d8f75d8348937c
+                  - subnet-0c7d45e4526c85204
+                  - subnet-0a7b232b7e08a0600
+                SecurityGroups:
+                  - sg-03d066ccd198d13d8
+
+Outputs:
+  ClusterName:
+    Value: !Ref ScrapeCluster
+  TaskDefinition:
+    Value: !Ref ScrapeTask

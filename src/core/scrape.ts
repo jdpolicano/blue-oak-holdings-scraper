@@ -79,7 +79,7 @@ export class ScrapeHandle {
   static async create(options: ScrapeOptions) {
     chromium.use(stealth());
     const browser = await chromium.launch(options.browserOptions || {});
-    const numPages = options.concurrency || 2;
+    const numPages = options.concurrency || 4;
     const pages: Page[] = [];
     for (let i = 0; i < numPages; i++) {
       const page = await browser.newPage();
@@ -100,7 +100,7 @@ export class ScrapeHandle {
       "Starting scrape",
     );
 
-    for (const [_, chunk] of chunks.entries()) {
+    for (const chunk of chunks) {
       const tasks = chunk.map((task, i) => {
         if (task.strategy === SiteStrategy.Api) {
           return this.processApi(task.siteHandler);

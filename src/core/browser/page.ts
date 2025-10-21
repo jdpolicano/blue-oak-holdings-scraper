@@ -28,6 +28,9 @@ export class PageRunner {
     siteUrl: string,
     siteHandle: BasePageObjectPaginated,
   ): Promise<Listing[]> {
+    if (page.isClosed()) {
+      throw new Error("Page is closed before starting getListingsPaginated");
+    }
     return retry(
       async (attempt) => {
         await Promise.all([
@@ -96,6 +99,9 @@ export class PageRunner {
       {
         onFailedAttempt: (ctx) => {
           this.logger.warn({ ctx });
+        },
+        shouldRetry: async (_) => {
+          return !page.isClosed();
         },
         retries: this.retries,
         minTimeout: this.timeout,
