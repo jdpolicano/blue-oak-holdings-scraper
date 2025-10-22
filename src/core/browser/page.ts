@@ -11,8 +11,8 @@ import { createHash } from "node:crypto";
 import retry from "p-retry";
 
 export class PageRunner {
-  private retries = 3;
-  private timeout = 10_000;
+  private retries = 5;
+  private timeout = 3_500;
   private logger: Logger;
 
   constructor(logger: Logger) {
