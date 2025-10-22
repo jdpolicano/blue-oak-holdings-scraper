@@ -7,8 +7,8 @@ export class VRBusinessBrokers implements BasePageObjectPaginated {
   baseUrl = "https://www.vrbusinessbrokers.com/";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("a", { has: page.locator(".vrbb-listing-box") }).all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("a", { has: page.locator(".vrbb-listing-box") });
   }
 
   async getTitle(container: Locator): Promise<string | null> {

@@ -8,8 +8,8 @@ export class MorganWestfield implements BasePageObjectPaginated {
   path = "/buy/businesses-for-sale/";
   altPath = "/buy/main-street-businesses-for-sale/";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("article.business-for-sale").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("article.business-for-sale");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

@@ -8,8 +8,8 @@ export class BAMA implements BasePageObjectPaginated {
   baseUrl = "https://www.buysellyourbusiness.com/";
   path = "/current-engagements";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("ul.engagement-list > li").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("ul.engagement-list > li");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

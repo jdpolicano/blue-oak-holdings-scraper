@@ -9,11 +9,10 @@ export class SunbeltNetwork implements BasePageObjectPaginated {
   baseUrl = "https://www.sunbeltnetwork.com";
   path = "/business-search/business-results";
 
-  async getContainers(page: Page): Promise<Locator[]> {
+  getContainerLocator(page: Page): Locator {
     return page
       .locator(".resultsBusiness__items")
-      .locator(".latestBusinesses__item")
-      .all();
+      .locator(".latestBusinesses__item");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

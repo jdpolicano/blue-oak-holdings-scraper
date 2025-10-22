@@ -18,9 +18,8 @@ export class LocalNotifier extends BaseNotifier implements Notifier {
     }
     const { html, text } = await this.buildPayloads(listings);
     // print notification plan
-    this.logger.info("New Listings Notification:");
-    this.logger.info(`HTML: ${html}`);
-    this.logger.info(`Text: ${text}`);
+    this.logger.info(`New Listings HTML: ${html}`);
+    this.logger.info(`New Listings Text: ${text}`);
     return;
   }
 }

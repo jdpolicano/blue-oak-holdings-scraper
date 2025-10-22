@@ -7,8 +7,8 @@ export class Midstreet implements BasePageObjectPaginated {
   baseUrl = "https://www.midstreet.com/";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator(".business-box").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator(".business-box");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

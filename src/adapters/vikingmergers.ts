@@ -7,8 +7,8 @@ export class VikingMergers implements BasePageObjectPaginated {
   baseUrl = "https://www.vikingmergers.com/";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator(".jet-listing-grid__item").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator(".jet-listing-grid__item");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

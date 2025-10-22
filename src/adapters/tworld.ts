@@ -7,8 +7,8 @@ export class TWorld implements BasePageObjectPaginated {
   baseUrl = "https://www.tworld.com";
   path = "/buy-a-business/business-listing-search";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("a.group").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("a.group");
   }
   async getTitle(container: Locator): Promise<string | null> {
     return container.locator("h1").textContent();

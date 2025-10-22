@@ -58,6 +58,7 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
+                  - s3:DeleteObject
                 Resource:
                   - !Sub arn:aws:s3:::${S3Bucket}
                   - !Sub arn:aws:s3:::${S3Bucket}/*

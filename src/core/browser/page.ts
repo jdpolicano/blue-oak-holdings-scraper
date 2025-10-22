@@ -11,8 +11,8 @@ import { createHash } from "node:crypto";
 import retry from "p-retry";
 
 export class PageRunner {
-  private retries = 5;
-  private timeout = 500;
+  private retries = 3;
+  private timeout = 2000;
   private logger: Logger;
 
   constructor(logger: Logger) {
@@ -21,6 +21,18 @@ export class PageRunner {
 
   private hash(content: string): string {
     return createHash("sha256").update(content).digest("hex");
+  }
+
+  private async waitForElementArray(loc: Locator): Promise<Locator[]> {
+    // wait for the first element to appear
+    try {
+      await loc.first().waitFor({ state: "attached" });
+      const count = await loc.count();
+      return Array.from({ length: count }).map((_, i) => loc.nth(i));
+    } catch (e) {
+      this.logger.error(e, "waitForElementArray failed");
+      return [];
+    }
   }
 
   async getListingsPaginated(
@@ -32,22 +44,15 @@ export class PageRunner {
       throw new Error("Page is closed before starting getListingsPaginated");
     }
     return retry(
-      async (attempt) => {
+      async () => {
         await Promise.all([
           siteHandle.onPageLoad(page),
           page.goto(siteUrl, { waitUntil: "domcontentloaded" }),
         ]);
 
-        // Add a wait for page load depending on the retry attempt
-        if (attempt > 1) {
-          const waitTime = (attempt - 1) * this.timeout;
-          this.logger.info(
-            `Waiting for ${waitTime}ms after retry attempt ${attempt}`,
-          );
-          await page.waitForTimeout(waitTime);
-        }
-
-        const containers = await siteHandle.getContainers(page);
+        const containers = await this.waitForElementArray(
+          siteHandle.getContainerLocator(page),
+        );
         if (!containers.length) {
           throw new Error("No containers found");
         }
@@ -98,7 +103,7 @@ export class PageRunner {
       },
       {
         onFailedAttempt: (ctx) => {
-          this.logger.warn({ ctx });
+          this.logger.warn(ctx);
         },
         shouldRetry: async (_) => {
           return !page.isClosed();

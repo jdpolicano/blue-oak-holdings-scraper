@@ -7,13 +7,12 @@ export class TheCBAGroup implements BasePageObjectPaginated {
   baseUrl = "https://thecbagroup.com";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
+  getContainerLocator(page: Page): Locator {
     return page
       .locator(".content-associates")
       .locator(".container")
       .locator(".row")
-      .locator("a")
-      .all();
+      .locator("a");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

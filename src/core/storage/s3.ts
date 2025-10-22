@@ -74,15 +74,15 @@ export class S3StorageStreamed implements Storage {
     try {
       await this.streamMergeToTemp(tempKey);
       await this.replaceOriginalWithTemp(tempKey);
-
       this.logger.info(
         `Appended ${this.newListings.length} new listings to s3://${this.bucket}/${this.key}`,
       );
       return this.newListings;
     } catch (err: any) {
       this.logger.error(err, "Error during finalize, cleaning up temp file");
-      await this.cleanupTempKey(tempKey);
       throw err;
+    } finally {
+      await this.cleanupTempKey(tempKey);
     }
   }
 
@@ -162,6 +162,9 @@ export class S3StorageStreamed implements Storage {
 
   /** Replaces the original object with the temp one atomically */
   private async replaceOriginalWithTemp(tempKey: string): Promise<void> {
+    this.logger.info(
+      `Replacing original s3://${this.bucket}/${this.key} with temp file s3://${this.bucket}/${tempKey}`,
+    );
     await this.s3.send(
       new CopyObjectCommand({
         Bucket: this.bucket,
@@ -169,18 +172,21 @@ export class S3StorageStreamed implements Storage {
         Key: this.key,
       }),
     );
+    this.logger.info(`Successfully replaced original file.`);
     await this.cleanupTempKey(tempKey);
   }
 
   /** Deletes the temp object */
   private async cleanupTempKey(tempKey: string): Promise<void> {
     try {
+      this.logger.info(`Cleaning up temp key s3://${this.bucket}/${tempKey}`);
       await this.s3.send(
         new DeleteObjectCommand({
           Bucket: this.bucket,
           Key: tempKey,
         }),
       );
+      this.logger.info(`Successfully deleted temp key.`);
     } catch (err) {
       this.logger.warn(err, `Failed to clean up temp key ${tempKey}:`);
     }

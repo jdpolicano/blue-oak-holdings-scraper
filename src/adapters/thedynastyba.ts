@@ -7,8 +7,8 @@ export class TheDynastyBA implements BasePageObjectPaginated {
   baseUrl = "https://thedynastyba.com/";
   path = "/listings";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator(".listing-card").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator(".listing-card");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

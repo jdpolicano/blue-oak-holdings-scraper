@@ -7,10 +7,8 @@ export class Enlign implements BasePageObjectPaginated {
   baseUrl = "https://enlign.com/";
   path = "/listings";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page
-      .locator("#listall .list-box", { hasText: "Full Details" })
-      .all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("#listall .list-box", { hasText: "Full Details" });
   }
 
   async getTitle(container: Locator): Promise<string | null> {

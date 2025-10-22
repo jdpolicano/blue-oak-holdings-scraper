@@ -7,8 +7,8 @@ export class FCBB implements BasePageObjectPaginated {
   baseUrl = "https://fcbb.com/";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("div.listing").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("div.listing");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

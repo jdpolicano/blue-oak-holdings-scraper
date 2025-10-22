@@ -7,8 +7,8 @@ export class BizBuySell implements BasePageObjectPaginated {
   baseUrl = "https://www.bizbuysell.com/";
   path = "/businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator("a:has(span.favorite)").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator("a:has(span.favorite)");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

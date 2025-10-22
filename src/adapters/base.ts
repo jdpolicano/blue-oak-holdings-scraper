@@ -30,7 +30,7 @@ export interface BaseScrapeProps {
  */
 export interface BasePageObjectCommon extends BaseScrapeProps {
   onPageLoad(page: Page): Promise<void>;
-  getContainers(page: Page): Promise<Locator[]>;
+  getContainerLocator(page: Page): Locator;
   getTitle(container: Page | Locator): Promise<string | null>;
   getHref(container: Page | Locator): Promise<string | null>;
   getIdString?(

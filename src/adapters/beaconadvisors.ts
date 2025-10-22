@@ -7,8 +7,8 @@ export class BeaconAdvisors implements BasePageObjectPaginated {
   baseUrl = "https://www.beaconadvisors.com/";
   path = "/current-businesses-for-sale";
 
-  async getContainers(page: Page): Promise<Locator[]> {
-    return page.locator(".bmaListingBox").all();
+  getContainerLocator(page: Page): Locator {
+    return page.locator(".bmaListingBox");
   }
 
   async getTitle(container: Locator): Promise<string | null> {

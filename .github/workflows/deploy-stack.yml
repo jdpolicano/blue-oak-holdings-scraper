@@ -1,0 +1,68 @@
+name: Deploy CloudFormation Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_uri:
+        description: "ECR image URI (with sha256 digest)"
+        required: false
+      environment:
+        description: "Deployment environment (default: prod)"
+        default: "prod"
+        required: false
+
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/deploy-stack.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Determine image URI
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGION=us-east-1
+          REPO_NAME="blue-oak-holdings/scraper"
+
+          if [ -z "${{ github.event.inputs.image_uri }}" ]; then
+            echo "ℹ️ No image_uri provided — fetching latest digest from ECR..."
+            DIGEST=$(aws ecr describe-images \
+              --repository-name "$REPO_NAME" \
+              --image-ids imageTag=latest \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+            IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME@$DIGEST"
+          else
+            IMAGE_URI="${{ github.event.inputs.image_uri }}"
+          fi
+
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "✅ Using image: $IMAGE_URI"
+
+      - name: Deploy CloudFormation
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/fargate.yaml \
+            --stack-name blue-oak-holdings-scraper \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              ImageUri=${{ env.IMAGE_URI }} \
+              SesFromAddress=${{ secrets.SES_FROM_ADDRESS }} \
+              SesToAddresses=${{ secrets.SES_TO_ADDRESSES }}
