@@ -68,6 +68,28 @@ Resources:
                   - ses:SendRawEmail
                 Resource: "*"
 
+  # Role that EventBridge assumes to trigger ECS task
+  EventBridgeInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowRunEcsTask
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:RunTask
+                  - iam:PassRole
+                Resource: "*"
+
   ScrapeTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -107,11 +129,13 @@ Resources:
   ScheduledScrape:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(0 23 * * ? *)" # 6pm ET = 23 UTC
+      ScheduleExpressionTimezone: "America/New_York"
+      ScheduleExpression: "cron(15 19 * * ? *)" # 7 PM local time
+      State: ENABLED
       Targets:
-        - Arn: !GetAtt ScrapeCluster.Arn
-          RoleArn: !GetAtt TaskExecutionRole.Arn
-          Id: "EcsFargateScrape"
+        - Id: "EcsFargateScrape"
+          Arn: !GetAtt ScrapeCluster.Arn
+          RoleArn: !GetAtt EventBridgeInvokeRole.Arn
           EcsParameters:
             LaunchType: FARGATE
             TaskDefinitionArn: !Ref ScrapeTask
