@@ -15,7 +15,9 @@ export class BaseNotifier {
     // render the HTML
     const html = template({
       listings: listings,
-      generatedAt: new Date().toLocaleString(),
+      generatedAt: new Date().toLocaleString("en-US", {
+        timeZone: "America/New_York",
+      }),
     });
 
     // fallback plain-text
