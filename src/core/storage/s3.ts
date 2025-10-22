@@ -79,10 +79,14 @@ export class S3StorageStreamed implements Storage {
       );
       return this.newListings;
     } catch (err: any) {
-      this.logger.error(err, "Error during finalize, cleaning up temp file");
-      throw err;
-    } finally {
+      this.logger.error(
+        err,
+        "Error during finalize, will attempt cleaning up temp file",
+      );
       await this.cleanupTempKey(tempKey);
+      // if the problem was the cleanup, it will blow this up again
+      // if not, we re-throw the original error
+      throw err;
     }
   }
 
