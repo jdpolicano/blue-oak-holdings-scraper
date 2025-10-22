@@ -6,16 +6,6 @@ on:
       image_uri:
         description: "ECR image URI (with sha256 digest)"
         required: false
-      environment:
-        description: "Deployment environment (default: prod)"
-        default: "prod"
-        required: false
-
-  push:
-    branches: [main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/deploy-stack.yml"
 
 permissions:
   id-token: write
@@ -59,7 +49,7 @@ jobs:
       - name: Deploy CloudFormation
         run: |
           aws cloudformation deploy \
-            --template-file infra/fargate.yaml \
+            --template-file infra/fargate-task-chromium.yaml \
             --stack-name blue-oak-holdings-scraper \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
