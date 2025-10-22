@@ -4,8 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       image_uri:
-        description: "ECR image URI (with sha256 digest)"
+        description: "Optional: ECR image URI with digest"
         required: false
+  repository_dispatch:
+    types: [deploy-scraper]
 
 permissions:
   id-token: write

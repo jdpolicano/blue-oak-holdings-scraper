@@ -45,10 +45,14 @@ jobs:
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
-      - name: Trigger deploy workflow
-        uses: peter-evans/workflow-dispatch@v2
+      - name: Trigger deployment (optional)
+        if: success()
+        uses: peter-evans/repository-dispatch@v3
         with:
-          workflow: deploy-stack.yml
-          ref: main
-          inputs:
-            image_uri: ${{ steps.build.outputs.image_uri }}
+          token: ${{ secrets.GITHUB_TOKEN }} # Personal Access Token, not GITHUB_TOKEN
+          repository: ${{ github.repository }}
+          event-type: deploy-scraper
+          client-payload: |
+            {
+              "image_uri": "${{ steps.push.outputs.IMAGE_URI }}"
+            }
