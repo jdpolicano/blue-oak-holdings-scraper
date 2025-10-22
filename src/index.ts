@@ -20,4 +20,5 @@ try {
   }
 } catch (error) {
   logger.error({ err: error }, "Error running scrape handler");
+  throw error;
 }

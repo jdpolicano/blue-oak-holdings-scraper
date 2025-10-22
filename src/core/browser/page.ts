@@ -12,7 +12,7 @@ import retry from "p-retry";
 
 export class PageRunner {
   private retries = 3;
-  private timeout = 2000;
+  private timeout = 10_000;
   private logger: Logger;
 
   constructor(logger: Logger) {
@@ -26,7 +26,7 @@ export class PageRunner {
   private async waitForElementArray(loc: Locator): Promise<Locator[]> {
     // wait for the first element to appear
     try {
-      await loc.first().waitFor({ state: "attached" });
+      await loc.first().waitFor({ state: "attached", timeout: 60_000 });
       const count = await loc.count();
       return Array.from({ length: count }).map((_, i) => loc.nth(i));
     } catch (e) {
