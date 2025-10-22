@@ -54,5 +54,5 @@ jobs:
           event-type: deploy-scraper
           client-payload: |
             {
-              "image_uri": "${{ steps.push.outputs.IMAGE_URI }}"
+              "image_uri": "${{ steps.push.outputs.image_uri }}"
             }
