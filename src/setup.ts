@@ -46,15 +46,15 @@ export function createNotifier(logger: Logger) {
 export async function createScrapeHandle(logger: Logger) {
   const sites = [
     new TheDynastyBA(),
-    // new Enlign(),
-    // new TheCBAGroup(),
-    // new VRBusinessBrokers(),
-    // new FCBB(),
-    // new VikingMergers(),
-    // new BeaconAdvisors(),
-    // new Midstreet(),
-    // new BAMA(),
-    // new MorganWestfield(),
+    new Enlign(),
+    new TheCBAGroup(),
+    new VRBusinessBrokers(),
+    new FCBB(),
+    new VikingMergers(),
+    new BeaconAdvisors(),
+    new Midstreet(),
+    new BAMA(),
+    new MorganWestfield(),
   ];
 
   const storage = await createStorageAdapter(logger);
