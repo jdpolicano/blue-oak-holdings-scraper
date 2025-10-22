@@ -13,20 +13,18 @@ RUN npm install
 # Copy the rest of the application code to the working directory
 COPY src ./src
 
-# Build the application
-RUN npm run build
-
-# Copy the built distribution files
-COPY dist ./dist
-
 # Copy the hbs templates
 COPY templates ./templates
+
+# Check if listings exist
+COPY listings*.csv .
+
+# Build the application
+RUN npm run build
 
 # Install the chromium browser with deps
 RUN npm run install-browser
 
-# Check if listings exist
-COPY listings*.csv .
 
 # Run the start command to kick off the application
 CMD ["npm", "start"]
