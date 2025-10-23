@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "dev": "npm run build && npm run start | npx pino-pretty",
     "debug": "export LOG_LEVEL=debug && npm run dev && unset LOG_LEVEL",
-    "install-browser": "playwright install --with-deps --only-shell chromium"
+    "install-browser": "playwright install --with-deps --only-shell chromium",
+    "prepare": "husky",
+    "lint-cfn": "cfn-lint ./infra/**/*.yaml"
   },
   "repository": {
     "type": "git",
@@ -42,6 +44,7 @@
   "devDependencies": {
     "@types/node": "^24.6.2",
     "@types/pino": "^7.0.4",
+    "husky": "^9.1.7",
     "typescript": "^5.9.3"
   }
 }
