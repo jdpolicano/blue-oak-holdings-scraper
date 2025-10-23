@@ -129,7 +129,7 @@ Resources:
   ScheduledScrape:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(15 23 * * ? *)" # 7 PM local time
+      ScheduleExpression: "cron(0 22 * * ? *)" # 6 PM EST in UTC (doesn't adjust for DST)
       State: ENABLED
       Targets:
         - Id: "EcsFargateScrape"
