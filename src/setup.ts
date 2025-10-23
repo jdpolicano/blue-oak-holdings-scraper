@@ -15,7 +15,6 @@ import { ScrapeHandle, ScrapeOptions } from "./core/scrape.js";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 import isDocker from "is-docker";
-import { LaunchOptions } from "playwright";
 
 export const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
 export const IS_DOCKER = isDocker();

@@ -135,6 +135,9 @@ Resources:
         - Id: "EcsFargateScrape"
           Arn: !GetAtt ScrapeCluster.Arn
           RoleArn: !GetAtt EventBridgeInvokeRole.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAgeInSeconds: 3600
           EcsParameters:
             LaunchType: FARGATE
             TaskDefinitionArn: !Ref ScrapeTask
