@@ -77,21 +77,3 @@ export type BaseScrapeObject =
   | BasePageObjectPaginated
   | BasePageObjectHuman
   | BaseApiObject;
-
-// abstract class Base {
-//   abstract baseUrl: string;
-//   abstract path: string;
-
-//   url(): URL {
-//     return new URL(this.path, this.baseUrl);
-//   }
-// }
-
-// export abstract class BasePageObject extends Base {
-//   abstract paginated: boolean;
-//   abstract getContainers(page: Page): Promise<Locator[]>;
-//   abstract getTitle(container: Page | Locator): Promise<string | null>;
-//   abstract getHref(container: Page | Locator): Promise<string | null>;
-//   abstract nextPage(page: Page | Locator): Promise<void>;
-//   abstract shouldStop(page: Page | Locator): Promise<boolean>;
-// }

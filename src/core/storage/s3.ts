@@ -1,7 +1,6 @@
 import {
   S3Client,
   GetObjectCommand,
-  PutObjectCommand,
   CopyObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -13,20 +12,39 @@ import { Logger } from "pino";
 import { Listing } from "../models/listing.js";
 import { Storage } from "./index.js";
 
+/**
+ * S3StorageStreamed is a class that provides functionality for managing and appending
+ * data to a CSV file stored in an S3 bucket. It uses streaming to handle large files
+ * efficiently and ensures atomic updates by using temporary files during the process.
+ */
 export class S3StorageStreamed implements Storage {
   private s3 = new S3Client({});
   private bucket: string;
   private key: string;
-  private idsSet = new Set<string>();
-  private newListings: Listing[] = [];
+  private idsSet = new Set<string>(); // Tracks existing IDs to prevent duplicates
+  private newListings: Listing[] = []; // Stores new listings to be appended
   private logger: Logger;
 
+  /**
+   * Constructor for S3StorageStreamed.
+   * @param bucket - The name of the S3 bucket.
+   * @param key - The key (path) of the CSV file in the bucket.
+   * @param logger - Logger instance for logging messages.
+   */
   constructor(bucket: string, key: string, logger: Logger) {
     this.bucket = bucket;
     this.key = key;
     this.logger = logger.child({ component: S3StorageStreamed.name });
   }
 
+  /**
+   * Factory method to create an instance of S3StorageStreamed.
+   * It initializes the instance and loads existing IDs from the CSV file in S3.
+   * @param bucket - The name of the S3 bucket.
+   * @param key - The key (path) of the CSV file in the bucket.
+   * @param logger - Logger instance for logging messages.
+   * @returns A promise that resolves to an S3StorageStreamed instance.
+   */
   static async create(
     bucket: string,
     key: string,
@@ -52,6 +70,10 @@ export class S3StorageStreamed implements Storage {
     return store;
   }
 
+  /**
+   * Adds new listings to the internal buffer, avoiding duplicates based on IDs.
+   * @param listings - One or more listings to append.
+   */
   async appendListing(...listings: Listing[]): Promise<void> {
     for (const listing of listings) {
       if (this.idsSet.has(listing.id)) continue;
@@ -59,8 +81,13 @@ export class S3StorageStreamed implements Storage {
       this.idsSet.add(listing.id);
     }
   }
-  /** Main entrypoint — orchestrates merge + upload */
-  /** Main entrypoint — orchestrates merge + upload */
+
+  /**
+   * Main entry point for finalizing the process.
+   * This method orchestrates the merging of new listings with the existing CSV
+   * and uploads the updated file back to S3.
+   * @returns A promise that resolves to the list of new listings appended.
+   */
   async finalize(): Promise<Listing[]> {
     if (this.newListings.length === 0) {
       this.logger.info("No new listings to append.");
@@ -84,18 +111,23 @@ export class S3StorageStreamed implements Storage {
         "Error during finalize, will attempt cleaning up temp file",
       );
       await this.cleanupTempKey(tempKey);
-      // if the problem was the cleanup, it will blow this up again
-      // if not, we re-throw the original error
       throw err;
     }
   }
 
-  /** Builds a unique temporary key name for safe overwrite */
+  /**
+   * Generates a unique temporary key name for safe overwriting.
+   * @returns A string representing the temporary key.
+   */
   private getTempKey(): string {
     return `${this.key}.tmp-${Date.now()}`;
   }
 
-  /** Downloads existing CSV (if any), merges new listings, and uploads to a temp object */
+  /**
+   * Downloads the existing CSV (if any), merges it with new listings, and uploads
+   * the result to a temporary object in S3.
+   * @param tempKey - The key for the temporary object in S3.
+   */
   private async streamMergeToTemp(tempKey: string): Promise<void> {
     const pass = new PassThrough();
     const uploadPromise = this.uploadTempFile(tempKey, pass);
@@ -119,7 +151,11 @@ export class S3StorageStreamed implements Storage {
     await uploadPromise;
   }
 
-  /** Pipes existing + new records into a CSV stream */
+  /**
+   * Merges existing records with new listings and writes the result to a destination stream.
+   * @param source - The readable stream of the existing CSV.
+   * @param destination - The writable stream for the merged CSV.
+   */
   private async mergeCsvStreams(
     source: Readable,
     destination: PassThrough,
@@ -136,12 +172,15 @@ export class S3StorageStreamed implements Storage {
     );
   }
 
-  /** Uploads the temp object to S3 */
+  /**
+   * Uploads the temporary object to S3 using multipart upload for large files.
+   * @param tempKey - The key for the temporary object in S3.
+   * @param body - The stream containing the data to upload.
+   */
   private async uploadTempFile(
     tempKey: string,
     body: PassThrough,
   ): Promise<void> {
-    // use upload from lib-storage for multipart upload support
     const upload = new Upload({
       client: this.s3,
       params: {
@@ -154,7 +193,10 @@ export class S3StorageStreamed implements Storage {
     await upload.done();
   }
 
-  /** Writes only new listings when the original file doesn't exist */
+  /**
+   * Writes only the new listings to a CSV when no existing file is found.
+   * @param destination - The writable stream for the new CSV.
+   */
   private async writeNewCsv(destination: PassThrough): Promise<void> {
     const csvStringifier = stringify({ header: true });
     await pipeline(
@@ -164,7 +206,10 @@ export class S3StorageStreamed implements Storage {
     );
   }
 
-  /** Replaces the original object with the temp one atomically */
+  /**
+   * Replaces the original object in S3 with the temporary one atomically.
+   * @param tempKey - The key for the temporary object in S3.
+   */
   private async replaceOriginalWithTemp(tempKey: string): Promise<void> {
     this.logger.info(
       `Replacing original s3://${this.bucket}/${this.key} with temp file s3://${this.bucket}/${tempKey}`,
@@ -180,7 +225,10 @@ export class S3StorageStreamed implements Storage {
     await this.cleanupTempKey(tempKey);
   }
 
-  /** Deletes the temp object */
+  /**
+   * Deletes the temporary object from S3.
+   * @param tempKey - The key for the temporary object in S3.
+   */
   private async cleanupTempKey(tempKey: string): Promise<void> {
     try {
       this.logger.info(`Cleaning up temp key s3://${this.bucket}/${tempKey}`);

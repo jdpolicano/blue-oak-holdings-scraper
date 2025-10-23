@@ -6,12 +6,14 @@ import { Listing } from "../models/listing.js";
  * information.
  */
 export interface Storage {
+  // optional method to close the storage early or cleanup resources.
   close?(): Promise<void>;
   // Finalize the storage, e.g., close file handles, db connections, etc
   finalize(): Promise<Listing[]>;
   // add a new listing to the storage. The storage is responsible
   // for deduplication if needed.
   appendListing(...listing: Listing[]): Promise<void>;
+  // check if a listing with the given id exists.
   hasListing?(id: string): Promise<boolean>;
 }
 
