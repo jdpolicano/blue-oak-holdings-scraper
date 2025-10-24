@@ -12,7 +12,7 @@
     "debug": "export LOG_LEVEL=debug && npm run dev && unset LOG_LEVEL",
     "install-browser": "playwright install --with-deps --only-shell chromium",
     "prepare": "husky",
-    "lint-cfn": "cfn-lint ./infra/**/*.yaml"
+    "cfn-lint": "cfn-lint ./infra/**/*.yaml"
   },
   "repository": {
     "type": "git",

@@ -10,6 +10,9 @@ COPY package*.json tsconfig.json ./
 # Install application dependencies
 RUN npm install
 
+# Install the chromium browser with deps
+RUN npm run install-browser
+
 # Copy the rest of the application code to the working directory
 COPY src ./src
 
@@ -21,10 +24,6 @@ COPY listings*.csv .
 
 # Build the application
 RUN npm run build
-
-# Install the chromium browser with deps
-RUN npm run install-browser
-
 
 # Run the start command to kick off the application
 CMD ["npm", "start"]
