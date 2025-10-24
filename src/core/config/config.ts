@@ -30,14 +30,9 @@ const scraperOptionsConfig = z.object({
 
 const programConfig = z.object({
   dryRun: z.boolean().default(envConfig.DRY_RUN),
-  notifications: z.object({
-    source: sourceEnum,
-    config: notificationsConfig,
-  }),
-  dataSources: z.object({
-    source: sourceEnum,
-    config: dataSourcesConfig,
-  }),
+  source: sourceEnum.default("local"),
+  notifications: notificationsConfig,
+  dataSources: dataSourcesConfig,
   scraperOptions: scraperOptionsConfig.default({
     sites: [],
     concurrency: 3,

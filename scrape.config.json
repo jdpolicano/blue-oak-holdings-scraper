@@ -1,19 +1,14 @@
 {
+  "source": "local",
   "notifications": {
-    "source": "local",
-    "config": {
-      "admin": "jdpolicano@gmail.com",
-      "sender": "blueoak.notifications@gmail.com",
-      "to": ["coleman@blueoakholdings.com"]
-    }
+    "admin": "jdpolicano@gmail.com",
+    "sender": "blueoak.notifications@gmail.com",
+    "to": ["coleman@blueoakholdings.com"]
   },
   "dataSources": {
-    "source": "local",
-    "config": {
-      "type": "s3",
-      "bucket": "blue-oak-holdings",
-      "dataKey": "data/listings.csv"
-    }
+    "type": "s3",
+    "bucket": "blue-oak-holdings",
+    "dataKey": "data/listings.csv"
   },
   "scraperOptions": {
     "sites": [
