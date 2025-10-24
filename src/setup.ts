@@ -1,79 +1,62 @@
-import {
-  TheDynastyBA,
-  TheCBAGroup,
-  Enlign,
-  VRBusinessBrokers,
-  FCBB,
-  VikingMergers,
-  BeaconAdvisors,
-  Midstreet,
-  BAMA,
-  MorganWestfield,
-} from "./adapters/index.js";
+import { registry } from "./adapters/index.js";
 import { MemoryStorage, S3StorageStreamed } from "./core/storage/index.js";
 import { ScrapeHandle, ScrapeOptions } from "./core/scrape.js";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 import isDocker from "is-docker";
+import { Config } from "./core/config/config.js";
 
 export const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
 export const IS_DOCKER = isDocker();
 
-export async function createStorageAdapter(logger: Logger) {
-  return IS_FARGATE
-    ? S3StorageStreamed.create(
-        process.env.S3_BUCKET_NAME!,
-        process.env.S3_OBJECT_KEY!,
-        logger.child({ component: S3StorageStreamed.name }),
-      )
-    : MemoryStorage.create(
-        "listings.csv",
-        logger.child({ component: MemoryStorage.name }),
-      );
-}
-
-export function createNotifier(logger: Logger) {
-  return IS_FARGATE
-    ? new SESNotifier(
-        process.env.SES_FROM_ADDRESS!,
-        process.env.SES_TO_ADDRESSES!.split(","),
-        logger.child({ component: SESNotifier.name }),
-      )
-    : new LocalNotifier(logger.child({ component: LocalNotifier.name }));
-}
-
-export async function createScrapeHandle(logger: Logger) {
-  const sites = [
-    new TheDynastyBA(),
-    new Enlign(),
-    new TheCBAGroup(),
-    new VRBusinessBrokers(),
-    new FCBB(),
-    new VikingMergers(),
-    new BeaconAdvisors(),
-    new Midstreet(),
-    new BAMA(),
-    new MorganWestfield(),
-  ];
-
-  const storage = await createStorageAdapter(logger);
-
-  const scrapeOptions: ScrapeOptions = {
-    logger,
-    sites,
-    storage,
-    browserOptions: { headless: true },
-  };
-
-  if (IS_DOCKER) {
-    scrapeOptions.browserOptions!.args = [
-      "--no-sandbox", // Required: sandboxing doesn't work in Fargate
-      "--disable-setuid-sandbox", // Disable setuid helper; redundant but safe
-      "--disable-dev-shm-usage", // Use /tmp instead of /dev/shm to avoid small SHM crashes
-      "--disable-gpu", // No GPU on Fargate; prevents GL errors
-    ];
-    scrapeOptions.concurrency = 3;
+export async function createStorageAdapter(config: Config, logger: Logger) {
+  if (config.get("dryRun")) {
+    logger.info(
+      { plan: config.get("dataSources") },
+      "createStorageAdapter dryRun requested",
+    );
+    return MemoryStorage.create(
+      "listings.csv",
+      logger.child({ component: MemoryStorage.name }),
+    );
   }
+  const { config: sourceConfig } = config.get("dataSources");
+  return S3StorageStreamed.create(
+    sourceConfig.bucket,
+    sourceConfig.dataKey,
+    logger.child({ component: S3StorageStreamed.name }),
+  );
+}
 
-  return ScrapeHandle.create(scrapeOptions);
+export function createNotifier(config: Config, logger: Logger) {
+  if (config.get("dryRun")) {
+    logger.info(
+      { plan: config.get("notifications") },
+      "createStorageAdapter dryRun requested",
+    );
+    return new LocalNotifier(logger.child({ component: LocalNotifier.name }));
+  }
+  const { config: notificationsConfig } = config.get("notifications");
+  const allRecipiants = notificationsConfig.to.concat([
+    notificationsConfig.admin,
+  ]);
+  const recipiantsUnique = Array.from(new Set(allRecipiants));
+  return new SESNotifier(
+    notificationsConfig.sender,
+    recipiantsUnique,
+    logger.child({ component: SESNotifier.name }),
+  );
+}
+
+export async function createScrapeHandle(config: Config, logger: Logger) {
+  const { sites, browserOptions } = config.get("scraperOptions");
+  const regSites = sites.length ? registry.list(sites) : registry.all();
+  const storage = await createStorageAdapter(config, logger);
+  const handleConfig: ScrapeOptions = {
+    logger,
+    storage,
+    sites: regSites,
+    browserOptions,
+  };
+  return ScrapeHandle.create(handleConfig);
 }

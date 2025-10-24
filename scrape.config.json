@@ -1,0 +1,35 @@
+{
+  "notifications": {
+    "source": "local",
+    "config": {
+      "admin": "jdpolicano@gmail.com",
+      "sender": "blueoak.notifications@gmail.com",
+      "to": ["coleman@blueoakholdings.com"]
+    }
+  },
+  "dataSources": {
+    "source": "local",
+    "config": {
+      "type": "s3",
+      "bucket": "blue-oak-holdings",
+      "dataKey": "data/listings.csv"
+    }
+  },
+  "scraperOptions": {
+    "sites": [
+      "thedynastyba",
+      "enlign",
+      "thecbagroup",
+      "vrbusinessbrokers",
+      "fcbb",
+      "vikingmergers",
+      "beaconadvisors",
+      "midstreet",
+      "bama",
+      "morganwestfield"
+    ],
+    "browserOptions": {
+      "headless": true
+    }
+  }
+}
