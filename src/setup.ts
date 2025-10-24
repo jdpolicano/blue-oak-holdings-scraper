@@ -20,10 +20,10 @@ export async function createStorageAdapter(config: Config, logger: Logger) {
       logger.child({ component: MemoryStorage.name }),
     );
   }
-  const { config: sourceConfig } = config.get("dataSources");
+  const { config: dataSourceConfig } = config.get("dataSources");
   return S3StorageStreamed.create(
-    sourceConfig.bucket,
-    sourceConfig.dataKey,
+    dataSourceConfig.bucket,
+    dataSourceConfig.dataKey,
     logger.child({ component: S3StorageStreamed.name }),
   );
 }
@@ -32,7 +32,7 @@ export function createNotifier(config: Config, logger: Logger) {
   if (config.get("dryRun")) {
     logger.info(
       { plan: config.get("notifications") },
-      "createStorageAdapter dryRun requested",
+      "createNotifierAdapter dryRun requested",
     );
     return new LocalNotifier(logger.child({ component: LocalNotifier.name }));
   }
