@@ -72,7 +72,7 @@ export class MemoryStorage implements Storage {
   /**
    * Gets the listings file read stream and creates a new one if it doesn't exist.
    *
-   * @returns The path to the listings file.
+   * @returns A ReadStream for the listings CSV file.
    *
    */
   private getListingsFileStream(): fs.ReadStream {
