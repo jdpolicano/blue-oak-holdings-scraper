@@ -75,7 +75,7 @@ export class MemoryStorage implements Storage {
    * @returns The path to the listings file.
    *
    */
-  getListingsFileStream(): fs.ReadStream {
+  private getListingsFileStream(): fs.ReadStream {
     if (!fs.existsSync(this.filePath)) {
       this.logger.warn(
         `Listings file not found at ${this.filePath}. Creating a new one.`,
