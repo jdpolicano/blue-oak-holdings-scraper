@@ -22,18 +22,31 @@ const dataSourcesConfig = z.discriminatedUnion("type", [dataSourcesConfigS3]);
 const scraperOptionsConfig = z.object({
   sites: z.array(z.string()).default([]),
   concurrency: z.number().default(3),
-  browserOptions: z.object({
-    headless: z.boolean().default(true),
-    args: z.array(z.string()).default([]),
-  }),
+  browserOptions: z
+    .object({
+      headless: z.boolean().default(true),
+      args: z
+        .array(z.string())
+        .default(
+          isDocker()
+            ? [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+              ]
+            : [],
+        ),
+    })
+    .default({ headless: true, args: [] }),
 });
 
 const programConfig = z.object({
   dryRun: z.boolean().default(envConfig.DRY_RUN),
   source: sourceEnum.default("local"),
   notifications: notificationsConfig,
-  dataSources: dataSourcesConfig,
-  scraperOptions: scraperOptionsConfig.default({
+  database: dataSourcesConfig,
+  scraper: scraperOptionsConfig.default({
     sites: [],
     concurrency: 3,
     browserOptions: {
@@ -43,11 +56,7 @@ const programConfig = z.object({
   }),
 });
 
-type ProgramConfigFile = z.infer<typeof programConfig>;
-
-type ProgramConfig = ProgramConfigFile & {
-  scraperOptions: z.infer<typeof scraperOptionsConfig>;
-};
+export type ProgramConfig = z.infer<typeof programConfig>;
 
 export class Config {
   config: ProgramConfig;
@@ -61,20 +70,12 @@ export class Config {
   }
 
   static async getConfig(): Promise<Config> {
-    const { PROGRAM_CONFIG_PATH } = envConfig;
-    const configRaw = await fs.readFile(PROGRAM_CONFIG_PATH, {
+    const { CONFIG_PATH } = envConfig;
+    const configRaw = await fs.readFile(CONFIG_PATH, {
       encoding: "utf-8",
     });
     const configJson = JSON.parse(configRaw);
     const validatedConfig = programConfig.parse(configJson);
-    if (isDocker()) {
-      validatedConfig.scraperOptions.browserOptions.args = [
-        "--no-sandbox", // Required: sandboxing doesn't work in Fargate
-        "--disable-setuid-sandbox", // Disable setuid helper; redundant but safe
-        "--disable-dev-shm-usage", // Use /tmp instead of /dev/shm to avoid small SHM crashes
-        "--disable-gpu", // No GPU on Fargate; prevents GL errors
-      ];
-    }
     return new Config(validatedConfig);
   }
 }

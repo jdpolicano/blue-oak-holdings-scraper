@@ -14,7 +14,7 @@ import retry from "p-retry";
  * It handles retries, logging, and the extraction of relevant data from the page.
  */
 export class PageRunner {
-  private retries = 5; // Number of retry attempts for the main scraping function
+  private retries = 0; // Number of retry attempts for the main scraping function
   private timeout = 3_500; // Minimum timeout between retries in milliseconds
   private logger: Logger; // Logger instance for structured logging
 
@@ -73,13 +73,18 @@ export class PageRunner {
       async () => {
         // Load the page and execute any site-specific setup logic
         await Promise.all([
-          siteHandle.onPageLoad(page),
+          siteHandle.onPageLoad(page, siteUrl),
           page.goto(siteUrl, { waitUntil: "domcontentloaded" }),
         ]);
-
+        this.logger.debug("Page loaded successfully");
         // Locate the containers for individual listings
         const containers = await this.waitForElementArray(
           siteHandle.getContainerLocator(page),
+        );
+
+        this.logger.debug(
+          { count: containers.length },
+          "Found listing containers",
         );
         if (!containers.length) {
           throw new Error("No containers found");
@@ -113,7 +118,7 @@ export class PageRunner {
               ? await siteHandle.getIdString(
                   page,
                   container,
-                  title,
+                  title || "",
                   resolvedHref,
                 )
               : resolvedHref;

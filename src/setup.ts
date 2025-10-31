@@ -12,7 +12,7 @@ export const IS_DOCKER = isDocker();
 export async function createStorageAdapter(config: Config, logger: Logger) {
   if (config.get("dryRun")) {
     logger.info(
-      { plan: config.get("dataSources") },
+      { plan: config.get("database") },
       "createStorageAdapter dryRun requested",
     );
     return MemoryStorage.create(
@@ -20,7 +20,7 @@ export async function createStorageAdapter(config: Config, logger: Logger) {
       logger.child({ component: MemoryStorage.name }),
     );
   }
-  const { config: dataSourceConfig } = config.get("dataSources");
+  const dataSourceConfig = config.get("database");
   return S3StorageStreamed.create(
     dataSourceConfig.bucket,
     dataSourceConfig.dataKey,
@@ -36,7 +36,7 @@ export function createNotifier(config: Config, logger: Logger) {
     );
     return new LocalNotifier(logger.child({ component: LocalNotifier.name }));
   }
-  const { config: notificationsConfig } = config.get("notifications");
+  const notificationsConfig = config.get("notifications");
   const allRecipiants = notificationsConfig.to.concat([
     notificationsConfig.admin,
   ]);
@@ -49,12 +49,13 @@ export function createNotifier(config: Config, logger: Logger) {
 }
 
 export async function createScrapeHandle(config: Config, logger: Logger) {
-  const { sites, browserOptions } = config.get("scraperOptions");
+  const { sites, concurrency, browserOptions } = config.get("scraper");
   const regSites = sites.length ? registry.list(sites) : registry.all();
   const storage = await createStorageAdapter(config, logger);
   const handleConfig: ScrapeOptions = {
     logger,
     storage,
+    concurrency,
     sites: regSites,
     browserOptions,
   };

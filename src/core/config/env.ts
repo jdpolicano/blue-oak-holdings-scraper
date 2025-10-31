@@ -2,20 +2,20 @@ import { envSchema, JSONSchemaType } from "env-schema";
 
 interface Env {
   DRY_RUN: boolean;
-  PROGRAM_CONFIG_PATH: string;
+  CONFIG_PATH: string;
 }
 
 const schema: JSONSchemaType<Env> = {
   type: "object",
-  required: ["PROGRAM_CONFIG_PATH"],
+  required: ["CONFIG_PATH"],
   properties: {
     DRY_RUN: {
       type: "boolean",
       default: false,
     },
-    PROGRAM_CONFIG_PATH: {
+    CONFIG_PATH: {
       type: "string",
-      default: "scrape.config.json",
+      default: "./config/scrape.config.json",
     },
   },
 };

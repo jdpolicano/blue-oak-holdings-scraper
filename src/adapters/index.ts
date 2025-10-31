@@ -12,15 +12,18 @@ import { Midstreet } from "./midstreet.js";
 import { BAMA } from "./bama.js";
 import { BatonMarket } from "./batonmarket.js";
 import { MorganWestfield } from "./morganwestfield.js";
+import { PronovaPartners } from "./pronovapartners.js";
 import { BaseScrapeObject } from "./base.js";
+import { IAGMerger } from "./iagmerger.js";
+import { BossGI } from "./bossgi.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
 class Registry {
-  private entries: Map<string, ScrapeConstructor>;
+  private entries: Map<string, BaseScrapeObject>;
 
   constructor() {
-    const sites = [
+    const sites: ScrapeConstructor[] = [
       TheDynastyBA,
       SunbeltNetwork,
       TWorld,
@@ -35,17 +38,21 @@ class Registry {
       BAMA,
       BatonMarket,
       MorganWestfield,
+      PronovaPartners,
+      IAGMerger,
+      BossGI,
     ];
     this.entries = new Map();
-    for (const site of sites) {
-      this.entries.set(site.name, site);
+    for (const siteConstructor of sites) {
+      const site = new siteConstructor();
+      this.entries.set(site.site, site);
     }
   }
 
   get(key: string): BaseScrapeObject | undefined {
     const c = this.entries.get(key);
     if (c) {
-      return new c();
+      return c;
     }
   }
 
@@ -60,7 +67,7 @@ class Registry {
   }
 
   all(): BaseScrapeObject[] {
-    return [...this.entries.values()].map((c) => new c());
+    return [...this.entries.values()];
   }
 }
 
