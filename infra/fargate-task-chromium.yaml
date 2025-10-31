@@ -6,16 +6,9 @@ Parameters:
     Type: String
     Description: ECR image URI (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/boh-scrape:latest)
     Default: "137532962642.dkr.ecr.us-east-1.amazonaws.com/blue-oak-holdings/scraper:latest"
-  SesFromAddress:
-    Type: String
-  SesToAddresses:
-    Type: String
   S3Bucket:
     Type: String
     Default: blue-oak-holdings
-  S3Key:
-    Type: String
-    Default: data/listings.csv
 
 Resources:
   ScrapeCluster:
@@ -104,15 +97,6 @@ Resources:
         - Name: blue-oak-holdings-scraper
           Image: !Ref ImageUri
           Essential: true
-          Environment:
-            - Name: S3_BUCKET_NAME
-              Value: !Ref S3Bucket
-            - Name: S3_OBJECT_KEY
-              Value: !Ref S3Key
-            - Name: SES_FROM_ADDRESS
-              Value: !Ref SesFromAddress
-            - Name: SES_TO_ADDRESSES
-              Value: !Ref SesToAddresses
           LogConfiguration:
             LogDriver: awslogs
             Options:

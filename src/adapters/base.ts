@@ -29,14 +29,14 @@ export interface BaseScrapeProps {
  * This is the interfacd for both the paginated and human scrape styles.
  */
 export interface BasePageObjectCommon extends BaseScrapeProps {
-  onPageLoad(page: Page): Promise<void>;
+  onPageLoad(page: Page, siteUrl: string): Promise<void>;
   getContainerLocator(page: Page): Locator;
   getTitle(container: Page | Locator): Promise<string | null>;
   getHref(container: Page | Locator): Promise<string | null>;
   getIdString?(
     page: Page,
     container: Locator,
-    title: string | null,
+    title: string,
     href: string,
   ): Promise<string>;
 }

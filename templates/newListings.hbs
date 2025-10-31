@@ -29,7 +29,7 @@
     <ul>
       {{#each listings}}
         <li>
-          <a href="{{href}}" target="_blank">{{title}}</a>
+          <a href="{{href}}" target="_blank">{{#if title}}{{title}}{{else}}Untitled Listing{{/if}}</a>
           {{#if site}} — (<em>{{site}}</em>){{/if}}
         </li>
       {{/each}}

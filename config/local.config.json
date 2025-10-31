@@ -1,0 +1,19 @@
+{
+  "dryRun": true,
+  "notifications": {
+    "admin": "jdpolicano@gmail.com",
+    "sender": "blueoak.notifications@gmail.com",
+    "to": ["coleman@blueoakholdings.com"]
+  },
+  "database": {
+    "type": "s3",
+    "bucket": "blue-oak-holdings",
+    "dataKey": "data/listings.csv"
+  },
+  "scraper": {
+    "sites": ["bossgi", "iagmerger", "pronovapartners"],
+    "browserOptions": {
+      "headless": true
+    }
+  }
+}

@@ -1,14 +1,74 @@
-export { TheDynastyBA } from "./thedynastyba.js";
-export { SunbeltNetwork } from "./sunbeltnetwork.js";
-export { TWorld } from "./tworld.js";
-export { TheCBAGroup } from "./thecbagroup.js";
-export { BizBuySell } from "./bizbuysell.js";
-export { Enlign } from "./enlign.js";
-export { VRBusinessBrokers } from "./vrbusinessbrokers.js";
-export { FCBB } from "./fcbb.js";
-export { VikingMergers } from "./vikingmergers.js";
-export { BeaconAdvisors } from "./beaconadvisors.js";
-export { Midstreet } from "./midstreet.js";
-export { BAMA } from "./bama.js";
-export { BatonMarket } from "./batonmarket.js";
-export { MorganWestfield } from "./morganwestfield.js";
+import { TheDynastyBA } from "./thedynastyba.js";
+import { SunbeltNetwork } from "./sunbeltnetwork.js";
+import { TWorld } from "./tworld.js";
+import { TheCBAGroup } from "./thecbagroup.js";
+import { BizBuySell } from "./bizbuysell.js";
+import { Enlign } from "./enlign.js";
+import { VRBusinessBrokers } from "./vrbusinessbrokers.js";
+import { FCBB } from "./fcbb.js";
+import { VikingMergers } from "./vikingmergers.js";
+import { BeaconAdvisors } from "./beaconadvisors.js";
+import { Midstreet } from "./midstreet.js";
+import { BAMA } from "./bama.js";
+import { BatonMarket } from "./batonmarket.js";
+import { MorganWestfield } from "./morganwestfield.js";
+import { PronovaPartners } from "./pronovapartners.js";
+import { BaseScrapeObject } from "./base.js";
+import { IAGMerger } from "./iagmerger.js";
+import { BossGI } from "./bossgi.js";
+
+type ScrapeConstructor = new () => BaseScrapeObject;
+
+class Registry {
+  private entries: Map<string, BaseScrapeObject>;
+
+  constructor() {
+    const sites: ScrapeConstructor[] = [
+      TheDynastyBA,
+      SunbeltNetwork,
+      TWorld,
+      TheCBAGroup,
+      BizBuySell,
+      Enlign,
+      VRBusinessBrokers,
+      FCBB,
+      VikingMergers,
+      BeaconAdvisors,
+      Midstreet,
+      BAMA,
+      BatonMarket,
+      MorganWestfield,
+      PronovaPartners,
+      IAGMerger,
+      BossGI,
+    ];
+    this.entries = new Map();
+    for (const siteConstructor of sites) {
+      const site = new siteConstructor();
+      this.entries.set(site.site, site);
+    }
+  }
+
+  get(key: string): BaseScrapeObject | undefined {
+    const c = this.entries.get(key);
+    if (c) {
+      return c;
+    }
+  }
+
+  list(keys: string[]): BaseScrapeObject[] {
+    const results = [];
+    for (const key of keys) {
+      if (this.entries.has(key)) {
+        results.push(this.get(key)!);
+      }
+    }
+    return results;
+  }
+
+  all(): BaseScrapeObject[] {
+    return [...this.entries.values()];
+  }
+}
+
+export const registry = new Registry();
