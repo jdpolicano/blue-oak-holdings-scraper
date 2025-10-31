@@ -8,5 +8,22 @@
     "type": "s3",
     "bucket": "blue-oak-holdings",
     "dataKey": "data/listings.csv"
+  },
+  "scraper": {
+    "sites": [
+      "thedynastyba",
+      "enlign",
+      "thecbagroup",
+      "vrbusinessbrokers",
+      "fcbb",
+      "vikingmergers",
+      "beaconadvisors",
+      "midstreet",
+      "bama",
+      "morganwestfield",
+      "bossgi",
+      "iagmerger",
+      "pronovapartners"
+    ]
   }
 }
