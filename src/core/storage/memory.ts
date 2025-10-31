@@ -55,7 +55,7 @@ export class MemoryStorage implements Storage {
     logger: Logger,
   ): Promise<MemoryStorage> {
     const memStore = new MemoryStorage(filePath, logger);
-    const csvData = fs.createReadStream(filePath, { encoding: "utf-8" });
+    const csvData = memStore.getListingsFileStream();
     const parser = parse({
       columns: true,
       skip_empty_lines: true,
@@ -67,6 +67,24 @@ export class MemoryStorage implements Storage {
       memStore.idsSet.add(record.id);
     }
     return memStore;
+  }
+
+  /**
+   * Gets the listings file read stream and creates a new one if it doesn't exist.
+   *
+   * @returns A ReadStream for the listings CSV file.
+   *
+   */
+  private getListingsFileStream(): fs.ReadStream {
+    if (!fs.existsSync(this.filePath)) {
+      this.logger.warn(
+        `Listings file not found at ${this.filePath}. Creating a new one.`,
+      );
+      fs.writeFileSync(this.filePath, "");
+    }
+    return fs.createReadStream(this.filePath, {
+      encoding: "utf-8",
+    });
   }
 
   /**
