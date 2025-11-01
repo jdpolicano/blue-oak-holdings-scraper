@@ -23,6 +23,7 @@ export const enum SiteStrategy {
 export interface BaseScrapeProps {
   site: string;
   baseUrl: string;
+  path: string;
 }
 
 /**
@@ -52,6 +53,7 @@ export interface BasePageObjectPaginated extends BasePageObjectCommon {
 
 export interface BasePageObjectHuman extends BasePageObjectCommon {
   siteStrategy: SiteStrategy.Human;
+  isTailPageScrapable: boolean;
   /**
    * Click the next button, or whatever is needed to get to the next page.
    */

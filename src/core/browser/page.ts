@@ -2,9 +2,8 @@ import { Page, Locator } from "playwright";
 import { Listing } from "../models/listing.js";
 import { Logger } from "pino";
 import {
+  BasePageObjectHuman,
   BasePageObjectPaginated,
-  // BaseScrapeObject,
-  // BasePageObjectCommon,
 } from "../../adapters/base.js";
 import { createHash } from "node:crypto";
 import retry from "p-retry";
@@ -35,6 +34,75 @@ export class PageRunner {
     return createHash("sha256").update(content).digest("hex");
   }
 
+  private async mapContainer(
+    page: Page,
+    container: Locator,
+    siteHandle: BasePageObjectHuman | BasePageObjectPaginated,
+    date: string,
+    url: string,
+  ): Promise<Listing> {
+    const title = await siteHandle.getTitle(container);
+    if (!title) {
+      this.logger.warn("Missing title field");
+    } else {
+      this.logger.debug({ title }, "Found listing title");
+    }
+
+    const href = await siteHandle.getHref(container);
+    if (!href) {
+      this.logger.error({ title }, "Missing href field");
+      throw new Error("Missing href field");
+    } else {
+      this.logger.debug({ title, href }, "Found listing href");
+    }
+
+    // Resolve the href to an absolute URL
+    const resolvedHref = new URL(href, siteHandle.baseUrl).toString();
+    // Generate a unique ID for the listing
+    const idString = siteHandle.getIdString
+      ? await siteHandle.getIdString(page, container, title || "", resolvedHref)
+      : resolvedHref;
+    const id = this.hash(idString);
+
+    return {
+      date,
+      site: siteHandle.baseUrl,
+      url,
+      title,
+      href: resolvedHref,
+      id,
+    };
+  }
+
+  /**
+   *
+   * @param page
+   * @param siteHandle
+   * @returns
+   */
+  private async scrapePage(
+    page: Page,
+    siteHandle: BasePageObjectPaginated | BasePageObjectHuman,
+  ): Promise<Listing[]> {
+    const containers = await this.waitForElementArray(
+      siteHandle.getContainerLocator(page),
+    );
+
+    this.logger.debug({ count: containers.length }, "Found listing containers");
+    if (!containers.length) {
+      throw new Error("No containers found");
+    }
+
+    const date = new Date().toISOString();
+    const url = page.url();
+
+    const listings = containers.map((container) =>
+      this.mapContainer(page, container, siteHandle, date, url),
+    );
+
+    return Promise.all(listings);
+  }
+
   /**
    * Waits for elements matching the given locator to appear on the page and returns them as an array.
    * @param loc - A Playwright Locator representing the elements to wait for.
@@ -51,6 +119,40 @@ export class PageRunner {
       this.logger.error(e, "waitForElementArray failed");
       return [];
     }
+  }
+
+  private async waitForPageLoad(
+    page: Page,
+    siteUrl: string,
+    siteHandle: BasePageObjectHuman | BasePageObjectPaginated,
+  ): Promise<void> {
+    await Promise.all([
+      siteHandle.onPageLoad(page, siteUrl),
+      page.goto(siteUrl, { waitUntil: "domcontentloaded" }),
+    ]);
+    this.logger.debug("Page loaded successfully");
+  }
+
+  async getListingsHuman(
+    page: Page,
+    siteUrl: string,
+    siteHandle: BasePageObjectHuman,
+  ): Promise<Listing[]> {
+    await this.waitForPageLoad(page, siteUrl, siteHandle);
+    const listings = [];
+
+    do {
+      const newListings = await this.scrapePage(page, siteHandle);
+      listings.push(...newListings);
+      await siteHandle.nextPage(page);
+    } while (!(await siteHandle.shouldStop(page)));
+
+    if (siteHandle.isTailPageScrapable) {
+      const newListings = await this.scrapePage(page, siteHandle);
+      listings.push(...newListings);
+    }
+
+    return listings;
   }
 
   /**
@@ -72,70 +174,9 @@ export class PageRunner {
     return retry(
       async () => {
         // Load the page and execute any site-specific setup logic
-        await Promise.all([
-          siteHandle.onPageLoad(page, siteUrl),
-          page.goto(siteUrl, { waitUntil: "domcontentloaded" }),
-        ]);
-        this.logger.debug("Page loaded successfully");
+        await this.waitForPageLoad(page, siteUrl, siteHandle);
         // Locate the containers for individual listings
-        const containers = await this.waitForElementArray(
-          siteHandle.getContainerLocator(page),
-        );
-
-        this.logger.debug(
-          { count: containers.length },
-          "Found listing containers",
-        );
-        if (!containers.length) {
-          throw new Error("No containers found");
-        }
-
-        const date = new Date().toISOString(); // Current timestamp for the listings
-        const url = page.url(); // The current page URL
-
-        // Extract data for each listing container
-        const listings = await Promise.all(
-          containers.map(async (container) => {
-            const title = await siteHandle.getTitle(container);
-            if (!title) {
-              this.logger.warn("Missing title field");
-            } else {
-              this.logger.debug({ title }, "Found listing title");
-            }
-
-            const href = await siteHandle.getHref(container);
-            if (!href) {
-              this.logger.error({ title }, "Missing href field");
-              throw new Error("Missing href field");
-            } else {
-              this.logger.debug({ title, href }, "Found listing href");
-            }
-
-            // Resolve the href to an absolute URL
-            const resolvedHref = new URL(href, siteHandle.baseUrl).toString();
-            // Generate a unique ID for the listing
-            const idString = siteHandle.getIdString
-              ? await siteHandle.getIdString(
-                  page,
-                  container,
-                  title || "",
-                  resolvedHref,
-                )
-              : resolvedHref;
-            const id = this.hash(idString);
-
-            return {
-              date,
-              site: siteHandle.baseUrl,
-              url,
-              title,
-              href: resolvedHref,
-              id,
-            };
-          }),
-        );
-
-        return listings;
+        return this.scrapePage(page, siteHandle);
       },
       {
         onFailedAttempt: (ctx) => {

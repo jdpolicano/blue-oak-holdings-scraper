@@ -11,7 +11,8 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "sites": ["bossgi", "iagmerger", "pronovapartners"],
+    "sites": ["bizex", "listenassociates", "themagnoliafirm"],
+    "concurrency": 1,
     "browserOptions": {
       "headless": true
     }

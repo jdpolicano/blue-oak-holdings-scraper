@@ -16,6 +16,9 @@ import { PronovaPartners } from "./pronovapartners.js";
 import { BaseScrapeObject } from "./base.js";
 import { IAGMerger } from "./iagmerger.js";
 import { BossGI } from "./bossgi.js";
+import { LisitenAssociates } from "./lisitenassociates.js";
+import { TheMagnoliaFirm } from "./themagnoliafirm.js";
+import { BizEx } from "./bizex.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -41,6 +44,9 @@ class Registry {
       PronovaPartners,
       IAGMerger,
       BossGI,
+      LisitenAssociates,
+      TheMagnoliaFirm,
+      BizEx,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {

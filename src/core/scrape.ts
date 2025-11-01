@@ -8,6 +8,7 @@ import { Listing } from "./models/listing.js";
 import {
   BaseApiObject,
   BasePageObjectPaginated,
+  BasePageObjectHuman,
   BaseScrapeObject,
   SiteStrategy,
 } from "../adapters/base.js";
@@ -48,7 +49,7 @@ interface ListingTaskApi {
   // URL is not applicable for API-based tasks.
 }
 
-interface ListingTaskBrowser {
+interface ListingTaskPaginated {
   strategy: SiteStrategy.Paginated;
   // Indicates that this task uses the paginated strategy for scraping.
   siteHandler: BasePageObjectPaginated;
@@ -57,7 +58,16 @@ interface ListingTaskBrowser {
   // The URL to scrape for this task.
 }
 
-type ListingTask = ListingTaskApi | ListingTaskBrowser;
+interface ListingTaskHuman {
+  strategy: SiteStrategy.Human;
+  // Indicates that this task uses the human strategy for scraping.
+  siteHandler: BasePageObjectHuman;
+  // The site handler responsible for scraping pages like a human.
+  url: string;
+  // The URL to scrape for this task.
+}
+
+type ListingTask = ListingTaskApi | ListingTaskPaginated | ListingTaskHuman;
 
 /**
  * Represents a handle to the browser instance that will run automation.
@@ -185,7 +195,7 @@ export class ScrapeHandle {
   async processUrl(
     page: Page,
     siteUrl: string,
-    siteHandler: BasePageObjectPaginated,
+    siteHandler: BasePageObjectPaginated | BasePageObjectHuman,
   ) {
     try {
       const runner = new PageRunner(
@@ -195,11 +205,12 @@ export class ScrapeHandle {
           component: "page-runner",
         }),
       );
-      const listings = await runner.getListingsPaginated(
-        page,
-        siteUrl,
-        siteHandler,
-      );
+
+      const listings =
+        siteHandler.siteStrategy === SiteStrategy.Paginated
+          ? await runner.getListingsPaginated(page, siteUrl, siteHandler)
+          : await runner.getListingsHuman(page, siteUrl, siteHandler);
+
       if (listings.length) {
         await this.storage.appendListing(...listings);
         this.logger.info(
@@ -226,8 +237,11 @@ export class ScrapeHandle {
    */
   async enqueueTasks() {
     for (const siteHandler of this.sites) {
-      if (siteHandler.siteStrategy === SiteStrategy.Paginated) {
-        await this.enqueuePaginated(siteHandler);
+      if (
+        siteHandler.siteStrategy === SiteStrategy.Paginated ||
+        siteHandler.siteStrategy === SiteStrategy.Human
+      ) {
+        await this.enqueueBrowserTask(siteHandler);
       }
 
       if (siteHandler.siteStrategy === SiteStrategy.Api) {
@@ -240,7 +254,18 @@ export class ScrapeHandle {
    * Enqueues tasks for paginated site handlers.
    * Fetches URLs from the site handler and adds them to the task queue.
    */
-  async enqueuePaginated(site: BasePageObjectPaginated) {
+  async enqueueBrowserTask(
+    site: BasePageObjectPaginated | BasePageObjectHuman,
+  ) {
+    if (site.siteStrategy === SiteStrategy.Human) {
+      const url = new URL(site.path, site.baseUrl).toString();
+      this.queue.push({
+        url,
+        siteHandler: site,
+        strategy: site.siteStrategy,
+      });
+      return;
+    }
     const page = this.pages[0];
     try {
       const urls = await site.getUrls(page);
