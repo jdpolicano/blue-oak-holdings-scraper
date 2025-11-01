@@ -11,7 +11,7 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "sites": ["bizex", "listenassociates", "themagnoliafirm"],
+    "sites": ["lisitenassociates", "themagnoliafirm", "bizex"],
     "concurrency": 1,
     "browserOptions": {
       "headless": true
