@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class TheDynastyBA implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -18,6 +22,14 @@ export class TheDynastyBA implements BasePageObjectPaginated {
   async getHref(container: Locator): Promise<string | null> {
     // Using getByTitle("View Details") since strategy = "title"
     return container.getByTitle("View Details").getAttribute("href");
+  }
+
+  async getId({ container }: IdSearchContext): Promise<string> {
+    const idText = await container.locator(".listing_number").textContent();
+    if (!idText) throw new Error("ID not found in container");
+    const idMatch = idText.match(/\d+-\d+/); // 14341-250249
+    if (!idMatch) throw new Error(`ID format not recognized: ${idText}`);
+    return idMatch[0];
   }
 
   async onPageLoad(page: Page): Promise<void> {}

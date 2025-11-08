@@ -19,6 +19,9 @@ import { BossGI } from "./bossgi.js";
 import { LisitenAssociates } from "./lisitenassociates.js";
 import { TheMagnoliaFirm } from "./themagnoliafirm.js";
 import { BizEx } from "./bizex.js";
+import { InbarGroup } from "./inbargroup.js";
+import { BayStateBusinessBrokers } from "./baystatebusinessbrokers.js";
+import { LinkBusiness } from "./linkbusiness.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -47,6 +50,9 @@ class Registry {
       LisitenAssociates,
       TheMagnoliaFirm,
       BizEx,
+      InbarGroup,
+      BayStateBusinessBrokers,
+      LinkBusiness,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {

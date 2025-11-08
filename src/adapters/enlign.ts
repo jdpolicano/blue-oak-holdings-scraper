@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class Enlign implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -24,6 +28,16 @@ export class Enlign implements BasePageObjectPaginated {
     return container
       .locator("a", { hasText: "Full Details" })
       .getAttribute("href");
+  }
+
+  async getId({ container }: IdSearchContext): Promise<string> {
+    const idText = await container
+      .locator("h6", { hasText: /Listing ID:/ })
+      .textContent();
+    if (!idText) throw new Error("ID not found in container");
+    const idMatch = idText.match(/Listing ID:\s*(?<id>[a-zA-Z0-9]+)/)?.groups;
+    if (!idMatch) throw new Error(`ID format not recognized: ${idText}`);
+    return idMatch.id;
   }
 
   async onPageLoad(page: Page): Promise<void> {

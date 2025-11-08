@@ -21,7 +21,7 @@ const dataSourcesConfig = z.discriminatedUnion("type", [dataSourcesConfigS3]);
 
 const scraperOptionsConfig = z.object({
   sites: z.array(z.string()).default([]),
-  concurrency: z.number().default(3),
+  concurrency: z.number().default(4),
   browserOptions: z
     .object({
       headless: z.boolean().default(true),

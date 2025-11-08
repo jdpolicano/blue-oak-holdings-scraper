@@ -1,6 +1,10 @@
 // sunbeltnetwork.ts
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 import path from "node:path";
 
 export class SunbeltNetwork implements BasePageObjectPaginated {
@@ -28,6 +32,10 @@ export class SunbeltNetwork implements BasePageObjectPaginated {
 
   async onPageLoad(page: Page): Promise<void> {
     await page.locator(".loader").waitFor({ state: "hidden" });
+  }
+
+  async getId({ href }: IdSearchContext): Promise<string> {
+    return href;
   }
 
   async getUrls(page: Page): Promise<string[]> {

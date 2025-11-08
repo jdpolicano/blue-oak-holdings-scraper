@@ -26,20 +26,23 @@ export interface BaseScrapeProps {
   path: string;
 }
 
+export interface IdSearchContext {
+  page: Page;
+  container: Locator;
+  title: string | null;
+  href: string;
+  logger: Logger;
+}
+
 /**
  * This is the interfacd for both the paginated and human scrape styles.
  */
 export interface BasePageObjectCommon extends BaseScrapeProps {
   onPageLoad(page: Page, siteUrl: string): Promise<void>;
   getContainerLocator(page: Page): Locator;
-  getTitle(container: Page | Locator): Promise<string | null>;
-  getHref(container: Page | Locator): Promise<string | null>;
-  getIdString?(
-    page: Page,
-    container: Locator,
-    title: string,
-    href: string,
-  ): Promise<string>;
+  getTitle(container: Locator): Promise<string | null>;
+  getHref(container: Locator): Promise<string | null>;
+  getId(ctx: IdSearchContext): Promise<string>;
 }
 
 export interface BasePageObjectPaginated extends BasePageObjectCommon {

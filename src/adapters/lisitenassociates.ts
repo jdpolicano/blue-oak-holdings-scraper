@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class LisitenAssociates implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -19,6 +23,14 @@ export class LisitenAssociates implements BasePageObjectPaginated {
 
   async getHref(container: Locator): Promise<string | null> {
     return container.locator("a.listing-title-link").getAttribute("href");
+  }
+
+  async getId({ container, href }: IdSearchContext): Promise<string> {
+    const idText = await container.locator(".rightcol").textContent();
+    if (!idText) return href;
+    const idMatch = idText.match(/Listing ID:\s*(?<id>[a-zA-Z]+\d+)/i);
+    if (!idMatch?.groups?.id) return href;
+    return idMatch.groups.id.trim();
   }
 
   async onPageLoad(page: Page): Promise<void> {

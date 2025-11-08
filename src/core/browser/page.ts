@@ -31,7 +31,7 @@ export class PageRunner {
    * @returns The resulting hash as a hexadecimal string.
    */
   private hash(content: string): string {
-    return createHash("sha256").update(content).digest("hex");
+    return createHash("sha256").update(content).digest("hex").slice(0, 16);
   }
 
   private async mapContainer(
@@ -48,28 +48,37 @@ export class PageRunner {
       this.logger.debug({ title }, "Found listing title");
     }
 
-    const href = await siteHandle.getHref(container);
-    if (!href) {
+    const hrefText = await siteHandle.getHref(container);
+    if (hrefText === null || hrefText.length === 0) {
       this.logger.error({ title }, "Missing href field");
       throw new Error("Missing href field");
     } else {
-      this.logger.debug({ title, href }, "Found listing href");
+      this.logger.debug({ title, href: hrefText }, "Found listing href");
     }
 
     // Resolve the href to an absolute URL
-    const resolvedHref = new URL(href, siteHandle.baseUrl).toString();
-    // Generate a unique ID for the listing
-    const idString = siteHandle.getIdString
-      ? await siteHandle.getIdString(page, container, title || "", resolvedHref)
-      : resolvedHref;
-    const id = this.hash(idString);
+    const href = new URL(hrefText, siteHandle.baseUrl).toString();
+
+    // if the siteHandle has a getId method, use it to get the listing number
+    const listingId = await siteHandle.getId({
+      page,
+      href,
+      container,
+      title,
+      logger: this.logger.child({ component: siteHandle.constructor.name }),
+    });
+
+    // namespace the listing id to avoid collisions across different sites
+    const listingIdNamespaced = `${siteHandle.site}:${listingId}`;
+    const id = this.hash(listingIdNamespaced);
 
     return {
       date,
-      site: siteHandle.baseUrl,
+      site: siteHandle.site,
       url,
       title,
-      href: resolvedHref,
+      href,
+      listingId: listingIdNamespaced,
       id,
     };
   }
@@ -90,17 +99,25 @@ export class PageRunner {
 
     this.logger.debug({ count: containers.length }, "Found listing containers");
     if (!containers.length) {
-      throw new Error("No containers found");
+      this.logger.warn("No containers found on the page");
+      return [];
     }
 
     const date = new Date().toISOString();
     const url = page.url();
+    const listings = [];
+    for (const container of containers) {
+      const listing = await this.mapContainer(
+        page,
+        container,
+        siteHandle,
+        date,
+        url,
+      );
+      listings.push(listing);
+    }
 
-    const listings = containers.map((container) =>
-      this.mapContainer(page, container, siteHandle, date, url),
-    );
-
-    return Promise.all(listings);
+    return listings;
   }
 
   /**
@@ -138,7 +155,12 @@ export class PageRunner {
     siteUrl: string,
     siteHandle: BasePageObjectHuman,
   ): Promise<Listing[]> {
+    if (page.isClosed()) {
+      throw new Error("Page is closed before starting getListingsPaginated");
+    }
+
     await this.waitForPageLoad(page, siteUrl, siteHandle);
+
     const listings = [];
 
     do {

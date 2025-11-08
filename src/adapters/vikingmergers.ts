@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class VikingMergers implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -21,6 +25,14 @@ export class VikingMergers implements BasePageObjectPaginated {
 
   async getHref(container: Locator): Promise<string | null> {
     return container.locator("a.elementor-button").first().getAttribute("href");
+  }
+
+  async getId({ title }: IdSearchContext): Promise<string> {
+    const idMatch = title?.match(/#\s*(?<id>\d+)/);
+    if (!idMatch || !idMatch.groups) {
+      throw new Error(`ID format not recognized: ${title}`);
+    }
+    return idMatch.groups.id;
   }
 
   async onPageLoad(page: Page): Promise<void> {

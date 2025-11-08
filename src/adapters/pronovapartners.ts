@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class PronovaPartners implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -22,6 +26,10 @@ export class PronovaPartners implements BasePageObjectPaginated {
       .locator("a.btn.btn-primary", { hasText: /Details/ })
       .first()
       .getAttribute("href");
+  }
+
+  async getId({ href }: IdSearchContext): Promise<string> {
+    return href;
   }
 
   async onPageLoad(page: Page): Promise<void> {

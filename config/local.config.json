@@ -11,10 +11,10 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "sites": ["lisitenassociates", "themagnoliafirm", "bizex"],
+    "sites": ["morganwestfield"],
     "concurrency": 1,
     "browserOptions": {
-      "headless": true
+      "headless": false
     }
   }
 }

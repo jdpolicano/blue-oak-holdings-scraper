@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class Midstreet implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -25,13 +29,8 @@ export class Midstreet implements BasePageObjectPaginated {
     return new URL(this.path, this.baseUrl).toString();
   }
 
-  async getIdString(
-    _page: Page,
-    _container: Locator,
-    title: string,
-    href: string,
-  ): Promise<string> {
-    return `${title}|${href}`;
+  async getId({ href }: IdSearchContext): Promise<string> {
+    return href;
   }
 
   async onPageLoad(page: Page): Promise<void> {

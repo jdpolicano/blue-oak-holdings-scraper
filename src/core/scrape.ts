@@ -264,8 +264,10 @@ export class ScrapeHandle {
         siteHandler: site,
         strategy: site.siteStrategy,
       });
+      this.logger.info({ site: site.site, url }, "Enqueued human task");
       return;
     }
+
     const page = this.pages[0];
     try {
       const urls = await site.getUrls(page);
@@ -276,6 +278,10 @@ export class ScrapeHandle {
           strategy: site.siteStrategy,
         });
       }
+      this.logger.info(
+        { site: site.site, totalUrls: urls.length },
+        "Enqueued paginated tasks",
+      );
     } catch (err) {
       this.logger.error({ site: site.site, err }, "Error enqueuing paginated");
     }

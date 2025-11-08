@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class BossGI implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -12,18 +16,24 @@ export class BossGI implements BasePageObjectPaginated {
   }
 
   async getTitle(container: Locator): Promise<string | null> {
-    const title = await container.locator(".catdisplay").textContent();
-    const listingNumber = await container.locator(".findisplay").textContent();
-    if (title === null || listingNumber === null) {
-      throw new Error(
-        `${this.site}: Title or listing number is null and is required`,
-      );
-    }
-    return `${title.trim()} - ${listingNumber.trim()}`;
+    return (
+      (await container.textContent())?.split(/\s+/).join(" ").trim() || null
+    );
   }
 
   async getHref(_: Locator): Promise<string | null> {
     return new URL(this.path, this.baseUrl).toString();
+  }
+
+  async getId({ title }: IdSearchContext): Promise<string> {
+    if (!title) {
+      throw new Error("Title is required to extract ID");
+    }
+    const match = title.match(/(?<id>[a-zA-Z]+-\d+-\d+)/);
+    if (!match || !match.groups) {
+      throw new Error(`ID format not recognized: ${title}`);
+    }
+    return match.groups.id;
   }
 
   async getIdString(

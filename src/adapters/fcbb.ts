@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class FCBB implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -22,6 +26,21 @@ export class FCBB implements BasePageObjectPaginated {
 
   async getHref(container: Locator): Promise<string | null> {
     return container.locator("a.diamond").first().getAttribute("href");
+  }
+
+  async getId({ page, container, href }: IdSearchContext): Promise<string> {
+    const pContainer = container.locator("p", {
+      has: page.locator("span.label", { hasText: /Listing Number:/i }),
+    });
+    const idText = await pContainer.textContent();
+    if (!idText) {
+      throw new Error(`ID text not found for href: ${href}`);
+    }
+    const idMatch = idText.match(/Listing Number:\s*(?<id>\d+-\d+)/i)?.groups;
+    if (!idMatch) {
+      throw new Error(`ID format not recognized: ${idText}`);
+    }
+    return idMatch.id;
   }
 
   async onPageLoad(page: Page): Promise<void> {

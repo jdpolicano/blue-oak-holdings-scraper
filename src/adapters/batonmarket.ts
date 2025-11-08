@@ -105,16 +105,18 @@ export class BatonMarket implements BaseApiObject {
     logger: Logger,
   ): Listing | undefined {
     const { listing } = result;
-    if (!listing || !listing?.id || !listing.business_id || !listing.slug) {
+    if (!listing || !listing.business_id || !listing.slug) {
       logger.warn(result, `Incomplete data for listing`);
       return;
     }
     const date = new Date().toISOString();
     return {
       title: listing.name,
+      url: this.makeListingHref(listing.slug, listing.business_id),
       href: this.makeListingHref(listing.slug, listing.business_id),
-      site: new URL(this.baseUrl).toString(),
-      id: listing.id,
+      site: this.site,
+      listingId: listing.business_id,
+      id: listing.business_id,
       date,
     };
   }

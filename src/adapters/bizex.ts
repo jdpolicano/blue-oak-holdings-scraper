@@ -1,8 +1,12 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectHuman, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
-export class BizEx implements BasePageObjectHuman {
-  siteStrategy: SiteStrategy.Human = SiteStrategy.Human;
+export class BizEx implements BasePageObjectPaginated {
+  siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
   site = "bizex";
   baseUrl = "https://www.bizex.net/";
   path = "/business-for-sale";
@@ -24,19 +28,39 @@ export class BizEx implements BasePageObjectHuman {
       .getAttribute("href");
   }
 
-  async shouldStop(page: Page): Promise<boolean> {
-    const nextBtn = page.getByRole("link", { name: "Next >" });
-    if (!(await nextBtn.isVisible())) {
-      return true;
+  async getId({ href, page }: IdSearchContext): Promise<string> {
+    await page.goto(href);
+    const elementContainer = page.locator(".listing-details").first();
+    const idText = await elementContainer.textContent();
+    if (!idText) {
+      await page.goBack();
+      return href;
     }
-    return false;
-  }
-
-  async nextPage(page: Page): Promise<void> {
-    const nextBtn = page.getByRole("link", { name: "Next >" });
-    await nextBtn.click();
-    await page.waitForLoadState("networkidle");
+    const match = idText.match(/BizEx\s+ID:\s*(?<id>BizEx\d+-[a-zA-Z]+)/i);
+    if (!match?.groups?.id) {
+      await page.goBack();
+      return href;
+    }
+    await page.goBack();
+    return match.groups.id;
   }
 
   async onPageLoad(page: Page): Promise<void> {}
+
+  async getUrls(page: Page): Promise<string[]> {
+    const baseListingsPage = new URL(this.path, this.baseUrl).toString();
+    await page.goto(baseListingsPage, { waitUntil: "domcontentloaded" });
+    const pageNumsSelectors = page
+      .locator("ul.pagination:not(.pull-right)")
+      .getByRole("listitem")
+      .getByRole("link");
+    const urls = [baseListingsPage];
+    for (const pageLink of await pageNumsSelectors.all()) {
+      const href = await pageLink.getAttribute("href");
+      if (!href) continue;
+      const url = new URL(href, baseListingsPage).toString();
+      urls.push(url);
+    }
+    return urls;
+  }
 }

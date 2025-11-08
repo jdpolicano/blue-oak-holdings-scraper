@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class BizBuySell implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -18,6 +22,10 @@ export class BizBuySell implements BasePageObjectPaginated {
   async getHref(container: Locator): Promise<string | null> {
     // Using getByTitle("View Details") since strategy = "title"
     return container.getAttribute("href");
+  }
+
+  async getId({ href }: IdSearchContext): Promise<string> {
+    return href;
   }
 
   async onPageLoad(_: Page): Promise<void> {}

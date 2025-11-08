@@ -1,5 +1,9 @@
 import { Page, Locator } from "playwright";
-import { BasePageObjectPaginated, SiteStrategy } from "./base.js";
+import {
+  BasePageObjectPaginated,
+  IdSearchContext,
+  SiteStrategy,
+} from "./base.js";
 
 export class IAGMerger implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
@@ -19,6 +23,9 @@ export class IAGMerger implements BasePageObjectPaginated {
     return title.trim();
   }
 
+  async getId({ href }: IdSearchContext): Promise<string> {
+    return href;
+  }
   async getHref(container: Locator): Promise<string | null> {
     return container.locator(".listings-link-title a").getAttribute("href");
   }

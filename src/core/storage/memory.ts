@@ -145,7 +145,6 @@ export class MemoryStorage implements Storage {
     const workDir = path.dirname(this.filePath);
     const workFileName = `working_${Date.now()}.csv`;
     const tempFilePath = path.join(workDir, workFileName);
-
     await pipeline(
       // Read the existing file as a stream
       fs.createReadStream(this.filePath, { encoding: "utf-8" }),
