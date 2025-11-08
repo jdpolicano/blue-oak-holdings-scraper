@@ -134,7 +134,7 @@ export class PageRunner {
       return Array.from({ length: count }).map((_, i) => loc.nth(i));
     } catch (e) {
       this.logger.error(e, "waitForElementArray failed");
-      return [];
+      throw e;
     }
   }
 
