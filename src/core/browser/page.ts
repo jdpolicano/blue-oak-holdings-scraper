@@ -156,7 +156,7 @@ export class PageRunner {
     siteHandle: BasePageObjectHuman,
   ): Promise<Listing[]> {
     if (page.isClosed()) {
-      throw new Error("Page is closed before starting getListingsPaginated");
+      throw new Error("Page is closed before starting getListingsHuman");
     }
 
     await this.waitForPageLoad(page, siteUrl, siteHandle);
