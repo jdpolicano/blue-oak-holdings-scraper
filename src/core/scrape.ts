@@ -73,6 +73,7 @@ export class ScrapeHandle {
     );
     const browserRunner = await BrowserRunner.create({
       ...options,
+      logger: options.logger.child({ component: BrowserRunner.name }),
       sites: browserSites,
     });
     return new ScrapeHandle({

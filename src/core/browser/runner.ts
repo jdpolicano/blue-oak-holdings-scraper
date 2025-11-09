@@ -3,7 +3,6 @@ import { Browser, Page, LaunchOptions } from "playwright";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 import { Storage } from "../storage/index.js";
-import { Listing } from "../models/listing.js";
 
 import {
   BasePageObjectPaginated,
@@ -32,7 +31,7 @@ export interface BrowserRunnerOptions {
 /** Internal, fully-resolved options passed to the handle. */
 interface BrowserRunnerOptionsInternal {
   logger: Logger;
-  sites: Array<BasePageObjectHuman | BasePageObjectPaginated>;
+  sites: (BasePageObjectHuman | BasePageObjectPaginated)[];
   storage: Storage;
   concurrency: number;
   browser: Browser;
@@ -62,8 +61,10 @@ export class BrowserRunner {
   private readonly logger: Logger;
   private readonly sites: Array<BasePageObjectHuman | BasePageObjectPaginated>;
   private readonly storage: Storage;
-
   private readonly browser: Browser;
+  private readonly concurrency: number;
+
+  /** Preallocated Playwright pages serving as workers. */
   private readonly pages: Page[];
 
   /** FIFO queue of pending tasks. */
@@ -73,9 +74,7 @@ export class BrowserRunner {
    * Array indexed by page index. Each slot holds the in-flight promise for that page,
    * or `null` when the page is idle.
    */
-  private inFlight: Array<Promise<number>> = [];
-
-  private readonly concurrency: number;
+  private inFlight: Promise<number>[] = [];
 
   private constructor({
     logger,
