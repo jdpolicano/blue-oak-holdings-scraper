@@ -11,6 +11,7 @@
   },
   "scraper": {
     "sites": [
+      "pronovapartners",
       "thedynastyba",
       "enlign",
       "thecbagroup",
@@ -23,7 +24,6 @@
       "morganwestfield",
       "bossgi",
       "iagmerger",
-      "pronovapartners",
       "lisitenassociates",
       "themagnoliafirm",
       "bizex",
