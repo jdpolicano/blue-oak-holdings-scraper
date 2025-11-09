@@ -1,6 +1,6 @@
 import { registry } from "./adapters/index.js";
 import { MemoryStorage, S3StorageStreamed } from "./core/storage/index.js";
-import { ScrapeHandle, ScrapeOptions } from "./core/scrape.js";
+import { ScrapeHandle, ScrapeHandleOptions } from "./core/scrape.js";
 import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 import isDocker from "is-docker";
@@ -52,7 +52,7 @@ export async function createScrapeHandle(config: Config, logger: Logger) {
   const { sites, concurrency, browserOptions } = config.get("scraper");
   const regSites = sites.length ? registry.list(sites) : registry.all();
   const storage = await createStorageAdapter(config, logger);
-  const handleConfig: ScrapeOptions = {
+  const handleConfig: ScrapeHandleOptions = {
     logger,
     storage,
     concurrency,
