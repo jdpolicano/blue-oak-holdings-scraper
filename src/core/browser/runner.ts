@@ -182,10 +182,10 @@ export class BrowserRunner {
           { site: site.site, err },
           "Error building paginated tasks",
         );
-      } finally {
-        await tmp.close();
       }
     }
+
+    await tmp.close();
   }
 
   /** Push a task onto the FIFO queue. */
