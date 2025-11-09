@@ -13,8 +13,8 @@ import retry from "p-retry";
  * It handles retries, logging, and the extraction of relevant data from the page.
  */
 export class PageRunner {
-  private retries = 0; // Number of retry attempts for the main scraping function
-  private timeout = 3_500; // Minimum timeout between retries in milliseconds
+  private retries = 3; // Number of retry attempts for the main scraping function
+  private timeout = 5000; // Minimum timeout between retries in milliseconds
   private logger: Logger; // Logger instance for structured logging
 
   /**
@@ -198,7 +198,8 @@ export class PageRunner {
         // Load the page and execute any site-specific setup logic
         await this.waitForPageLoad(page, siteUrl, siteHandle);
         // Locate the containers for individual listings
-        return this.scrapePage(page, siteHandle);
+        const listings = await this.scrapePage(page, siteHandle);
+        return listings;
       },
       {
         onFailedAttempt: (ctx) => {
