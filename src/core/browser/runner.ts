@@ -150,6 +150,8 @@ export class BrowserRunner {
    * Uses a temporary page for `getUrls` to avoid contaminating worker pages.
    */
   private async buildTaskQueue(): Promise<void> {
+    const tmp = await this.browser.newPage();
+
     for (const site of this.sites) {
       if (site.siteStrategy === SiteStrategy.Human) {
         const url = new URL(site.path, site.baseUrl).toString();
@@ -162,7 +164,6 @@ export class BrowserRunner {
       }
 
       // Paginated: fetch URLs with a disposable page so we don't leave worker state behind.
-      const tmp = await this.browser.newPage();
       try {
         const urls = await site.getUrls(tmp);
         for (const url of urls) {
