@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "dev": "export DRY_RUN=true && npm run build && npm run start | npx pino-pretty && unset DRY_RUN",
     "debug": "export LOG_LEVEL=debug && npm run dev && unset LOG_LEVEL",
-    "docker-dev": "docker build -t scrapy-brokers-poc . && docker run -m 3g --cpus=2 -e DRY_RUN=true -e LOG_LEVEL=debug scrapy-brokers-poc",
+    "docker-dev": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true scrapy-brokers-poc",
+    "docker-debug": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true -e LOG_LEVEL=debug scrapy-brokers-poc",
     "install-browser": "playwright install --with-deps chromium",
     "prepare": "husky",
     "cfn-lint": "cfn-lint ./infra/**/*.yaml"

@@ -10,7 +10,6 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "concurrency": 2,
     "sites": [
       "pronovapartners",
       "thedynastyba",
