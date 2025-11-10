@@ -204,10 +204,6 @@ export class BrowserRunner {
     this.taskQueue.push(task);
   }
 
-  // ──────────────────────────────
-  // Worker pool (Promise.race)
-  // ──────────────────────────────
-
   /**
    * Seed the pool with up to `concurrency` initial tasks—one per page index.
    * Assumes `buildTaskQueue` has already populated `taskQueue`.

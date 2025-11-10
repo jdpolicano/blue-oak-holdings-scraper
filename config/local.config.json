@@ -11,10 +11,9 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "sites": ["morganwestfield"],
-    "concurrency": 1,
+    "sites": ["coulhouncompanies", "newleafbrokerage", "kensingtoncompany"],
     "browserOptions": {
-      "headless": false
+      "headless": true
     }
   }
 }

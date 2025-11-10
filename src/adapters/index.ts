@@ -22,6 +22,9 @@ import { BizEx } from "./bizex.js";
 import { InbarGroup } from "./inbargroup.js";
 import { BayStateBusinessBrokers } from "./baystatebusinessbrokers.js";
 import { LinkBusiness } from "./linkbusiness.js";
+import { CalhounCompanies } from "./calhouncompanies.js";
+import { NewLeafBrokerage } from "./newleafbrokerage.js";
+import { KensingtonCompany } from "./kensingtoncompany.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -53,6 +56,9 @@ class Registry {
       InbarGroup,
       BayStateBusinessBrokers,
       LinkBusiness,
+      CalhounCompanies,
+      NewLeafBrokerage,
+      KensingtonCompany,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {
