@@ -11,7 +11,8 @@
     "dataKey": "data/listings.csv"
   },
   "scraper": {
-    "sites": ["coulhouncompanies", "newleafbrokerage", "kensingtoncompany"],
+    "sites": ["gottesmancompany", "exitconsultinggroup"],
+    "concurrency": 2,
     "browserOptions": {
       "headless": true
     }

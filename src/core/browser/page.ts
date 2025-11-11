@@ -26,6 +26,24 @@ export class PageRunner {
   }
 
   /**
+   * Handles escaping of special characters in a string.
+   * @param input - The string to escape.
+   * @returns The escaped string.
+   */
+  private normalizeListing(listing: Listing): Listing {
+    const replacements = [["\u00A0", " "]];
+    for (let [key, value] of Object.entries(listing)) {
+      if (typeof value === "string") {
+        for (const [oldChar, newChar] of replacements) {
+          value = value.replaceAll(oldChar, newChar);
+        }
+        listing[key as keyof Listing] = value;
+      }
+    }
+    return listing;
+  }
+
+  /**
    * Generates a SHA-256 hash for a given string.
    * @param content - The string to hash.
    * @returns The resulting hash as a hexadecimal string.
@@ -72,7 +90,7 @@ export class PageRunner {
     const listingIdNamespaced = `${siteHandle.site}:${listingId}`;
     const id = this.hash(listingIdNamespaced);
 
-    return {
+    return this.normalizeListing({
       date,
       site: siteHandle.site,
       url,
@@ -80,7 +98,7 @@ export class PageRunner {
       href,
       listingId: listingIdNamespaced,
       id,
-    };
+    });
   }
 
   /**

@@ -25,6 +25,8 @@ import { LinkBusiness } from "./linkbusiness.js";
 import { CalhounCompanies } from "./calhouncompanies.js";
 import { NewLeafBrokerage } from "./newleafbrokerage.js";
 import { KensingtonCompany } from "./kensingtoncompany.js";
+import { GottesmanCompany } from "./gottesmancompany.js";
+import { ExitConsultingGroup } from "./exitconsultinggroup.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -59,6 +61,8 @@ class Registry {
       CalhounCompanies,
       NewLeafBrokerage,
       KensingtonCompany,
+      GottesmanCompany,
+      ExitConsultingGroup,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {
