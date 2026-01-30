@@ -58,20 +58,19 @@ export class PageRunner {
     siteHandle: BasePageObjectHuman | BasePageObjectPaginated,
     date: string,
     url: string,
-  ): Promise<Listing> {
+  ): Promise<Listing | null> {
     const title = await siteHandle.getTitle(container);
-    if (!title) {
-      this.logger.warn("Missing title field");
-    } else {
-      this.logger.debug({ title }, "Found listing title");
-    }
+    this.logger.trace({ title });
 
     const hrefText = await siteHandle.getHref(container);
-    if (hrefText === null || hrefText.length === 0) {
-      this.logger.error({ title }, "Missing href field");
-      throw new Error("Missing href field");
-    } else {
-      this.logger.debug({ title, href: hrefText }, "Found listing href");
+    this.logger.trace({ hrefText });
+
+    if (!hrefText) {
+      this.logger.warn(
+        { hrefText, title },
+        "Missing required field 'href', skipping listing",
+      );
+      return null;
     }
 
     // Resolve the href to an absolute URL
@@ -85,6 +84,16 @@ export class PageRunner {
       title,
       logger: this.logger.child({ component: siteHandle.constructor.name }),
     });
+
+    this.logger.trace({ listingId });
+
+    if (!listingId) {
+      this.logger.warn(
+        { listingId, href, title },
+        "Missing required field 'listingId', skipping listing",
+      );
+      return null;
+    }
 
     // namespace the listing id to avoid collisions across different sites
     const listingIdNamespaced = `${siteHandle.site}:${listingId}`;
@@ -135,7 +144,7 @@ export class PageRunner {
       listings.push(listing);
     }
 
-    return listings;
+    return listings.filter((listing): listing is Listing => listing !== null);
   }
 
   /**

@@ -26,7 +26,7 @@ export class CalhounCompanies implements BasePageObjectPaginated {
   }
 
   async getId({ title, href }: IdSearchContext): Promise<string> {
-    const idMatch = title?.match(/- (?<id>\d{5} [a-zA-Z]+)$/);
+    const idMatch = title?.match(/- (?<id>\d{5} [a-z/A-Z]+)$/);
     if (!idMatch?.groups?.id) {
       return href;
     }

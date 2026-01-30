@@ -1,4 +1,5 @@
 import { Listing } from "../models/listing.js";
+import { ScrapingError } from "../models/error.js";
 import { BaseNotifier } from "./base.js";
 import { Notifier } from "./index.js";
 import { Logger } from "pino";
@@ -39,6 +40,27 @@ export class LocalNotifier extends BaseNotifier implements Notifier {
     // Log the generated notification payloads for debugging or auditing purposes.
     this.logger.info(`New Listings HTML: ${html}`);
     this.logger.info(`New Listings Text: ${text}`);
+    return;
+  }
+
+  /**
+   * Notify method processes scraping errors and logs the notification payloads.
+   * @param errors - An array of ScrapingError objects representing scraping errors to notify about.
+   * If the array is empty, a message is logged indicating no scraping errors.
+   * Otherwise, the method builds HTML and text payloads for the errors and logs them.
+   */
+  async notifyScrapingErrors(errors: ScrapingError[]): Promise<void> {
+    if (!errors.length) {
+      this.logger.info("No scraping errors to notify.");
+      return;
+    }
+
+    // Build the notification payloads (HTML and plain text) for the errors.
+    const { html, text } = await this.buildErrorPayloads(errors);
+
+    // Log the generated notification payloads for debugging or auditing purposes.
+    this.logger.info(`Scraping Errors HTML: ${html}`);
+    this.logger.info(`Scraping Errors Text: ${text}`);
     return;
   }
 }

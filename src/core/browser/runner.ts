@@ -3,6 +3,7 @@ import { Browser, Page, LaunchOptions } from "playwright";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 import { Storage } from "../storage/index.js";
+import { ScrapingError, ErrorClassifier } from "../models/error.js";
 
 import {
   BasePageObjectPaginated,
@@ -115,6 +116,9 @@ export class BrowserRunner {
     });
   }
 
+  /** Collection of errors that occurred during scraping */
+  private errors: ScrapingError[] = [];
+
   /**
    * Run the full scrape:
    * 1) Build the task queue
@@ -122,7 +126,7 @@ export class BrowserRunner {
    * 3) Loop with Promise.race to keep pages busy
    * 4) Drain remaining in-flight tasks
    */
-  async run(): Promise<void> {
+  async run(): Promise<{ errors: ScrapingError[] }> {
     try {
       await this.buildTaskQueue();
       await this.seedInitialWork();
@@ -139,6 +143,8 @@ export class BrowserRunner {
     } finally {
       await this.teardown();
     }
+
+    return { errors: this.errors };
   }
 
   // ──────────────────────────────
@@ -181,6 +187,23 @@ export class BrowserRunner {
         this.logger.error(
           { site: site.site, err },
           "Error building paginated tasks",
+        );
+
+        // Create and collect error with cause classification
+        const scrapingError = ErrorClassifier.createScrapingError(
+          err as Error,
+          site.site,
+          site.baseUrl
+        );
+
+        this.errors.push(scrapingError);
+        this.logger.warn(
+          {
+            site: site.site,
+            errorType: scrapingError.errorType,
+            description: scrapingError.description,
+          },
+          "Error detected during task queue building",
         );
       }
     }
@@ -286,6 +309,25 @@ export class BrowserRunner {
       this.logger.error(
         { site: task.siteHandler.site, url: task.url, pageIdx, err },
         "Error scraping",
+      );
+
+      // Create and collect error with cause classification
+      const scrapingError = ErrorClassifier.createScrapingError(
+        err as Error,
+        task.siteHandler.site,
+        task.url
+      );
+
+      this.errors.push(scrapingError);
+      this.logger.warn(
+        {
+          site: task.siteHandler.site,
+          url: task.url,
+          errorType: scrapingError.errorType,
+          description: scrapingError.description,
+          pageIdx,
+        },
+        "Error detected - will trigger notification",
       );
     }
 

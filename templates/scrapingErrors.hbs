@@ -1,0 +1,103 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      h2 {
+        color: #d32f2f; /* Red color for critical errors */
+      }
+      h3 {
+        color: #f57c00; /* Orange for error type */
+      }
+      ul {
+        padding-left: 1em;
+      }
+      li {
+        margin-bottom: 1em;
+        padding: 8px;
+        border-left: 3px solid #d32f2f;
+        background-color: #ffebee; /* Light red background */
+      }
+      .error-meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .error-type {
+        background-color: #d32f2f;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      .cloudwatch-link {
+        background-color: #ff9800;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+        display: inline-block;
+        margin-top: 10px;
+      }
+      .cloudwatch-link:hover {
+        background-color: #f57c00;
+        text-decoration: none;
+        color: white;
+      }
+      .summary {
+        background-color: #fff3e0;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🚨 Scraping Errors Detected</h2>
+    
+    <div class="summary">
+      <p><strong>Summary:</strong> <b>{{totalErrors}}</b> errors detected across <b>{{affectedSites}}</b> site(s).</p>
+      <p><strong>Action Required:</strong> Review errors and investigate any persistent issues.</p>
+    </div>
+
+    <ul>
+      {{#each errors}}
+        <li>
+          <span class="error-type">{{errorType}}</span>
+          <strong>{{site}}</strong>
+          <div style="margin: 5px 0;">
+            <em>{{description}}</em>
+          </div>
+          <div class="error-meta">
+            URL: <code>{{url}}</code><br>
+            Time: {{timestamp}}
+          </div>
+        </li>
+      {{/each}}
+    </ul>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-radius: 5px;">
+      <h3>📋 Investigation Steps</h3>
+      <ol>
+        <li>Check CloudWatch logs for detailed error information and stack traces</li>
+        <li>Visit the affected URLs to manually verify site structure changes</li>
+        <li>Update selectors or API endpoints if site structure has changed</li>
+        <li>Test fixes in a development environment before deploying</li>
+      </ol>
+      
+      <a href="https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logV2:log-groups" 
+         target="_blank" 
+         class="cloudwatch-link">
+        🔍 View CloudWatch Logs
+      </a>
+    </div>
+
+    <hr />
+    <p style="font-size: 12px; color: #888;">
+      Generated automatically at {{generatedAt}} (America/New_York)
+    </p>
+  </body>
+</html>

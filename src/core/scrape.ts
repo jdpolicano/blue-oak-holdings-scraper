@@ -1,9 +1,7 @@
 import { Logger } from "pino";
-import { Browser, Page, LaunchOptions } from "playwright";
-import { chromium } from "playwright-extra";
-import stealth from "puppeteer-extra-plugin-stealth";
 import { Storage } from "./storage/index.js";
 import { Listing } from "./models/listing.js";
+import { ScrapingError, ErrorClassifier } from "./models/error.js";
 import { BrowserRunner, BrowserRunnerOptions } from "./browser/runner.js";
 
 import {
@@ -13,6 +11,13 @@ import {
   SiteStrategy,
   BaseScrapeObject,
 } from "../adapters/base.js";
+
+export interface ScrapeResult {
+  /** Listings that were successfully scraped */
+  listings: Listing[];
+  /** Errors that occurred during scraping */
+  errors: ScrapingError[];
+}
 
 interface ScrapeHandleOverrides {
   sites: BaseScrapeObject[];
@@ -87,25 +92,41 @@ export class ScrapeHandle {
    * Main method to run the scraping process.
    * Processes tasks in chunks and collects the scraped listings.
    */
-  async run(): Promise<Listing[]> {
+  async run(): Promise<ScrapeResult> {
     const t0 = Date.now();
     this.logger.info("Starting scrape handle run");
-    // Process browser-based sites in chunks
-    await this.browserRunner.run();
-    // Process API-based sites sequentially
+    
+    // Collect errors from all sources
+    const allErrors: ScrapingError[] = [];
+    
+    // Process browser-based sites in chunks and collect errors
+    const browserResult = await this.browserRunner.run();
+    allErrors.push(...browserResult.errors);
+    
+    // Process API-based sites sequentially and collect errors
     for (const siteHandler of this.apiSites) {
-      await this.processApi(siteHandler);
+      const apiErrors = await this.processApi(siteHandler);
+      allErrors.push(...apiErrors);
     }
+    
     const t1 = Date.now();
-    this.logger.info({ durationMs: t1 - t0 }, "Completed scrape handle run");
-    return this.storage.finalize();
+    this.logger.info({ 
+      durationMs: t1 - t0, 
+      errors: allErrors.length 
+    }, "Completed scrape handle run");
+    
+    const listings = await this.storage.finalize();
+    return { listings, errors: allErrors };
   }
 
   /**
    * Processes a task using the API strategy.
    * Fetches listings via the site's API and appends them to storage.
+   * Returns errors that occurred during processing.
    */
-  async processApi(siteHandler: BaseApiObject) {
+  async processApi(siteHandler: BaseApiObject): Promise<ScrapingError[]> {
+    const errors: ScrapingError[] = [];
+    
     try {
       const listings = await siteHandler.fetchListings(
         this.logger.child({ site: siteHandler.site }),
@@ -127,6 +148,25 @@ export class ScrapeHandle {
         { site: siteHandler.site, err },
         "Error fetching API listings",
       );
+
+      // Create and collect error with cause classification
+      const scrapingError = ErrorClassifier.createScrapingError(
+        err as Error,
+        siteHandler.site,
+        siteHandler.baseUrl || ""
+      );
+
+      errors.push(scrapingError);
+      this.logger.warn(
+        {
+          site: siteHandler.site,
+          errorType: scrapingError.errorType,
+          description: scrapingError.description,
+        },
+        "Error detected for API site",
+      );
     }
+
+    return errors;
   }
 }
