@@ -16,6 +16,14 @@ export interface ScrapingError {
 export const enum ScrapingErrorType {
   /** Site structure has changed (selectors not found, DOM changes) */
   SiteStructureChanged = "SITE_STRUCTURE_CHANGED",
+  /** Playwright could not find or interact with an expected DOM element */
+  SelectorError = "SELECTOR_ERROR",
+  /** Playwright navigation failed or timed out */
+  NavigationError = "NAVIGATION_ERROR",
+  /** Playwright waited for a response/API call that never arrived */
+  ResponseWaitError = "RESPONSE_WAIT_ERROR",
+  /** Browser, page, or context lifecycle failure */
+  BrowserError = "BROWSER_ERROR",
   /** Authentication failure (blocked, login required) */
   AuthenticationFailure = "AUTHENTICATION_FAILURE",
   /** Site is completely down or unreachable */
@@ -36,6 +44,159 @@ export const enum ScrapingErrorType {
   Unknown = "UNKNOWN",
 }
 
+interface ErrorClassification {
+  type: ScrapingErrorType;
+  description: string;
+}
+
+interface ErrorRule extends ErrorClassification {
+  patterns: RegExp[];
+}
+
+const ERROR_RULES: ErrorRule[] = [
+  {
+    type: ScrapingErrorType.AntiBotDetected,
+    description: "Anti-bot protection triggered - manual intervention may be required",
+    patterns: [
+      /cloudflare.*challenge/,
+      /cloudflare.*block/,
+      /cf-ray/,
+      /access.*denied.*bot/,
+      /bot.*detected/,
+      /automated.*access/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.AuthenticationFailure,
+    description: "Authentication failed or access was denied",
+    patterns: [
+      /401/,
+      /unauthorized/,
+      /forbidden/,
+      /access denied/,
+      /blocked/,
+      /banned/,
+      /captcha/,
+      /challenge.*required/,
+      /verification.*required/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.RateLimitError,
+    description: "Rate limit exceeded - may resolve automatically",
+    patterns: [/rate limit/, /too many requests/, /429/],
+  },
+  {
+    type: ScrapingErrorType.SSLError,
+    description: "SSL/TLS certificate issue - may be temporary",
+    patterns: [/ssl/, /certificate/, /tls/, /net::err_cert/],
+  },
+  {
+    type: ScrapingErrorType.BrowserError,
+    description: "Browser/page lifecycle error - check browser stability and resource limits",
+    patterns: [
+      /target page.*closed/,
+      /target context.*closed/,
+      /target browser.*closed/,
+      /browser has been closed/,
+      /page is closed/,
+      /context was destroyed/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.SelectorError,
+    description: "Expected page element was missing or not actionable - check selectors",
+    patterns: [
+      /locator\.[a-z]+: timeout \d+ms exceeded/,
+      /waiting for locator/,
+      /selector.*not found/,
+      /element.*not found/,
+      /no element matching/,
+      /timeout.*waiting for selector/,
+      /strict mode violation/,
+      /element is not attached/,
+      /element is not visible/,
+      /element is outside of the viewport/,
+      /intercepts pointer events/,
+      /waiting for.*to be visible/,
+      /waiting for.*to be attached/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.ResponseWaitError,
+    description: "Expected network response was not observed - check endpoint or request trigger",
+    patterns: [
+      /page\.waitforresponse: timeout \d+ms exceeded/,
+      /waitforresponse.*timeout/,
+      /waiting for response/,
+      /response.*format.*changed/,
+      /invalid.*response.*format/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.NavigationError,
+    description: "Page navigation failed or timed out - check site availability",
+    patterns: [
+      /page\.goto: timeout \d+ms exceeded/,
+      /navigation timeout/,
+      /waiting until .*domcontentloaded/,
+      /waiting until .*networkidle/,
+      /net::err_aborted/,
+      /net::err_failed/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.SiteDown,
+    description: "Site is down or unreachable",
+    patterns: [
+      /connection refused/,
+      /econnrefused/,
+      /host.*not found/,
+      /name resolution failed/,
+      /net::err_name_not_resolved/,
+      /net::err_connection/,
+      /503/,
+      /502/,
+      /service unavailable/,
+      /bad gateway/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.ApiEndpointChanged,
+    description: "API endpoint has changed or been removed",
+    patterns: [/404/, /not found.*api/, /endpoint.*not found/, /api.*changed/],
+  },
+  {
+    type: ScrapingErrorType.ConfigurationError,
+    description: "Configuration error - verify credentials, domain, or launch settings",
+    patterns: [
+      /invalid.*credentials/,
+      /authentication.*failed/,
+      /login.*failed/,
+      /domain.*not.*allowed/,
+      /origin.*not.*allowed/,
+      /executable doesn't exist/,
+      /browser executable/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.SiteStructureChanged,
+    description: "Site structure has changed - expected data could not be parsed",
+    patterns: [
+      /id not found/,
+      /id format not recognized/,
+      /title is required/,
+      /cannot read propert/,
+      /is not defined/,
+    ],
+  },
+  {
+    type: ScrapingErrorType.NetworkError,
+    description: "Network timeout or transient connection issue",
+    patterns: [/timeout/, /socket hang up/, /econnreset/, /fetch failed/],
+  },
+];
+
 /**
  * Analyzes errors to determine their likely cause and creates structured error reports
  */
@@ -48,87 +209,7 @@ export class ErrorClassifier {
     site: string,
     url: string,
   ): ScrapingErrorType {
-    const errorMessage = error.message.toLowerCase();
-    const errorStack = error.stack?.toLowerCase() || "";
-
-    // Site structure changes
-    if (
-      /selector.*not found|element.*not found|no element matching|timeout.*waiting for selector/i.test(
-        errorMessage,
-      ) ||
-      (error.name === "TypeError" &&
-        errorMessage.includes("cannot read property")) ||
-      (error.name === "ReferenceError" &&
-        errorMessage.includes("is not defined"))
-    ) {
-      return ScrapingErrorType.SiteStructureChanged;
-    }
-
-    // Authentication failures
-    if (
-      /401|unauthorized|forbidden|access denied|blocked|banned|captcha|challenge.*required|verification.*required/i.test(
-        errorMessage,
-      )
-    ) {
-      return ScrapingErrorType.AuthenticationFailure;
-    }
-
-    // Site down
-    if (
-      /connection refused|econnrefused|host.*not found|name resolution failed|503|502|service unavailable|bad gateway/i.test(
-        errorMessage,
-      )
-    ) {
-      return ScrapingErrorType.SiteDown;
-    }
-
-    // Anti-bot detection
-    if (
-      /cloudflare.*challenge|cloudflare.*block|cf-ray|access.*denied.*bot|bot.*detected|automated.*access/i.test(
-        errorMessage,
-      )
-    ) {
-      return ScrapingErrorType.AntiBotDetected;
-    }
-
-    // API issues
-    if (
-      /404|not found.*api|endpoint.*not found|api.*changed|invalid.*response.*format|response.*format.*changed/i.test(
-        errorMessage,
-      )
-    ) {
-      return ScrapingErrorType.ApiEndpointChanged;
-    }
-
-    // Configuration issues
-    if (
-      /invalid.*credentials|authentication.*failed|login.*failed|domain.*not.*allowed|origin.*not.*allowed/i.test(
-        errorMessage,
-      )
-    ) {
-      return ScrapingErrorType.ConfigurationError;
-    }
-
-    // Rate limiting (may be temporary)
-    if (/rate limit|too many requests|429/i.test(errorMessage)) {
-      return ScrapingErrorType.RateLimitError;
-    }
-
-    // Network timeouts (may be temporary)
-    if (
-      errorMessage.includes("timeout") &&
-      !errorMessage.includes("selector")
-    ) {
-      return ScrapingErrorType.NetworkError;
-    }
-
-    // SSL/TLS issues (may be temporary)
-    if (/ssl|certificate|tls/i.test(errorMessage)) {
-      return ScrapingErrorType.SSLError;
-    }
-
-    // Fallback to unknown
-    return ScrapingErrorType.Unknown;
+    return this.classify(error).type;
   }
 
   /**
@@ -140,63 +221,34 @@ export class ErrorClassifier {
     site: string,
     url: string,
   ): ScrapingError {
+    const classification = this.classify(error);
+
     return {
       site,
       url,
-      errorType: this.classifyError(error, site, url),
-      description: this.createErrorDescription(error),
+      errorType: classification.type,
+      description: classification.description,
       timestamp: new Date().toISOString(),
       rawError: error,
     };
   }
 
-  /**
-   * Creates a human-readable description for the error
-   */
-  private static createErrorDescription(error: Error): string {
-    const errorMessage = error.message.toLowerCase();
+  private static classify(error: Error): ErrorClassification {
+    const searchableText = [
+      error.name,
+      error.message,
+      error.stack ?? "",
+    ].join("\n").toLowerCase();
 
-    if (errorMessage.includes("selector") || errorMessage.includes("element")) {
-      return `Site structure has changed - expected elements not found`;
-    }
+    const rule = ERROR_RULES.find((candidate) =>
+      candidate.patterns.some((pattern) => pattern.test(searchableText)),
+    );
 
-    if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
-      return `Authentication failed - access denied`;
-    }
-
-    if (
-      errorMessage.includes("cloudflare") ||
-      errorMessage.includes("challenge")
-    ) {
-      return `Anti-bot protection triggered - manual intervention may be required`;
-    }
-
-    if (
-      errorMessage.includes("connection refused") ||
-      errorMessage.includes("host")
-    ) {
-      return `Site is down or unreachable`;
-    }
-
-    if (errorMessage.includes("api") || errorMessage.includes("endpoint")) {
-      return `API endpoint has changed or been removed`;
-    }
-
-    if (
-      errorMessage.includes("rate limit") ||
-      errorMessage.includes("too many requests")
-    ) {
-      return `Rate limit exceeded - may resolve automatically`;
-    }
-
-    if (errorMessage.includes("timeout")) {
-      return `Network timeout - may be temporary`;
-    }
-
-    if (errorMessage.includes("ssl") || errorMessage.includes("certificate")) {
-      return `SSL/TLS certificate issue - may be temporary`;
-    }
-
-    return `Error occurred: ${error.message}`;
+    return (
+      rule ?? {
+        type: ScrapingErrorType.Unknown,
+        description: `Error occurred: ${error.message}`,
+      }
+    );
   }
 }
