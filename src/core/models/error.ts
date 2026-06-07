@@ -138,6 +138,8 @@ const ERROR_RULES: ErrorRule[] = [
     description: "Page navigation failed or timed out - check site availability",
     patterns: [
       /page\.goto: timeout \d+ms exceeded/,
+      /page\.waitforloadstate: timeout \d+ms exceeded/,
+      /waitforloadstate.*timeout/,
       /navigation timeout/,
       /waiting until .*domcontentloaded/,
       /waiting until .*networkidle/,

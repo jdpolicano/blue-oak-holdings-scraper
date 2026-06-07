@@ -28,25 +28,30 @@ jobs:
           aws-region: us-east-1
 
       - name: Determine image URI
+        env:
+          INPUT_IMAGE_URI: ${{ github.event.inputs.image_uri }}
+          PAYLOAD_IMAGE_URI: ${{ github.event.client_payload.image_uri }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           REGION=us-east-1
           REPO_NAME="blue-oak-holdings/scraper"
 
-          if [ -z "${{ github.event.inputs.image_uri }}" ]; then
-            echo "ℹ️ No image_uri provided — fetching latest digest from ECR..."
+          if [ -n "$INPUT_IMAGE_URI" ]; then
+            IMAGE_URI="$INPUT_IMAGE_URI"
+          elif [ -n "$PAYLOAD_IMAGE_URI" ]; then
+            IMAGE_URI="$PAYLOAD_IMAGE_URI"
+          else
+            echo "No image_uri provided; fetching latest digest from ECR."
             DIGEST=$(aws ecr describe-images \
               --repository-name "$REPO_NAME" \
               --image-ids imageTag=latest \
               --query 'imageDetails[0].imageDigest' \
               --output text)
             IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME@$DIGEST"
-          else
-            IMAGE_URI="${{ github.event.inputs.image_uri }}"
           fi
 
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          echo "✅ Using image: $IMAGE_URI"
+          echo "Using image: $IMAGE_URI"
 
       - name: Deploy CloudFormation
         run: |
@@ -55,6 +60,4 @@ jobs:
             --stack-name blue-oak-holdings-scraper \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              ImageUri=${{ env.IMAGE_URI }} \
-              SesFromAddress=${{ secrets.SES_FROM_ADDRESS }} \
-              SesToAddresses=${{ secrets.SES_TO_ADDRESSES }}
+              ImageUri=${{ env.IMAGE_URI }}
