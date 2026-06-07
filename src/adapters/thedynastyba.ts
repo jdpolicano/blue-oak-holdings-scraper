@@ -27,9 +27,9 @@ export class TheDynastyBA implements BasePageObjectPaginated {
   async getId({ container }: IdSearchContext): Promise<string> {
     const idText = await container.locator(".listing_number").textContent();
     if (!idText) throw new Error("ID not found in container");
-    const idMatch = idText.match(/\d+-\d+/); // 14341-250249
+    const idMatch = idText.match(/\d+\s*-\s*\d+/); // 14341-250249 or 14341 - 250249
     if (!idMatch) throw new Error(`ID format not recognized: ${idText}`);
-    return idMatch[0];
+    return idMatch[0].replace(/\s+/g, "");
   }
 
   async onPageLoad(page: Page): Promise<void> {}
