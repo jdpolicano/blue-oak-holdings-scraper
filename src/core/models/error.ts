@@ -15,25 +15,25 @@ export interface ScrapingError {
 
 export const enum ScrapingErrorType {
   /** Site structure has changed (selectors not found, DOM changes) */
-  SiteStructureChanged = 'SITE_STRUCTURE_CHANGED',
+  SiteStructureChanged = "SITE_STRUCTURE_CHANGED",
   /** Authentication failure (blocked, login required) */
-  AuthenticationFailure = 'AUTHENTICATION_FAILURE',
+  AuthenticationFailure = "AUTHENTICATION_FAILURE",
   /** Site is completely down or unreachable */
-  SiteDown = 'SITE_DOWN',
+  SiteDown = "SITE_DOWN",
   /** Anti-bot detection that cannot be bypassed */
-  AntiBotDetected = 'ANTI_BOT_DETECTED',
+  AntiBotDetected = "ANTI_BOT_DETECTED",
   /** API endpoint changed or removed */
-  ApiEndpointChanged = 'API_ENDPOINT_CHANGED',
+  ApiEndpointChanged = "API_ENDPOINT_CHANGED",
   /** Configuration error (invalid credentials, wrong domain) */
-  ConfigurationError = 'CONFIGURATION_ERROR',
+  ConfigurationError = "CONFIGURATION_ERROR",
   /** Network/timeout issues (may be temporary) */
-  NetworkError = 'NETWORK_ERROR',
+  NetworkError = "NETWORK_ERROR",
   /** Rate limiting (may be temporary) */
-  RateLimitError = 'RATE_LIMIT_ERROR',
+  RateLimitError = "RATE_LIMIT_ERROR",
   /** SSL/TLS certificate issues (may be temporary) */
-  SSLError = 'SSL_ERROR',
+  SSLError = "SSL_ERROR",
   /** Unknown or miscellaneous error */
-  Unknown = 'UNKNOWN',
+  Unknown = "UNKNOWN",
 }
 
 /**
@@ -43,39 +43,69 @@ export class ErrorClassifier {
   /**
    * Determines the most likely cause of an error
    */
-  static classifyError(error: Error, site: string, url: string): ScrapingErrorType {
+  static classifyError(
+    error: Error,
+    site: string,
+    url: string,
+  ): ScrapingErrorType {
     const errorMessage = error.message.toLowerCase();
-    const errorStack = error.stack?.toLowerCase() || '';
+    const errorStack = error.stack?.toLowerCase() || "";
 
     // Site structure changes
-    if (/selector.*not found|element.*not found|no element matching|timeout.*waiting for selector/i.test(errorMessage) ||
-        (error.name === 'TypeError' && errorMessage.includes('cannot read property')) ||
-        (error.name === 'ReferenceError' && errorMessage.includes('is not defined'))) {
+    if (
+      /selector.*not found|element.*not found|no element matching|timeout.*waiting for selector/i.test(
+        errorMessage,
+      ) ||
+      (error.name === "TypeError" &&
+        errorMessage.includes("cannot read property")) ||
+      (error.name === "ReferenceError" &&
+        errorMessage.includes("is not defined"))
+    ) {
       return ScrapingErrorType.SiteStructureChanged;
     }
 
     // Authentication failures
-    if (/401|unauthorized|forbidden|access denied|blocked|banned|captcha|challenge.*required|verification.*required/i.test(errorMessage)) {
+    if (
+      /401|unauthorized|forbidden|access denied|blocked|banned|captcha|challenge.*required|verification.*required/i.test(
+        errorMessage,
+      )
+    ) {
       return ScrapingErrorType.AuthenticationFailure;
     }
 
     // Site down
-    if (/connection refused|econnrefused|host.*not found|name resolution failed|503|502|service unavailable|bad gateway/i.test(errorMessage)) {
+    if (
+      /connection refused|econnrefused|host.*not found|name resolution failed|503|502|service unavailable|bad gateway/i.test(
+        errorMessage,
+      )
+    ) {
       return ScrapingErrorType.SiteDown;
     }
 
     // Anti-bot detection
-    if (/cloudflare.*challenge|cloudflare.*block|cf-ray|access.*denied.*bot|bot.*detected|automated.*access/i.test(errorMessage)) {
+    if (
+      /cloudflare.*challenge|cloudflare.*block|cf-ray|access.*denied.*bot|bot.*detected|automated.*access/i.test(
+        errorMessage,
+      )
+    ) {
       return ScrapingErrorType.AntiBotDetected;
     }
 
     // API issues
-    if (/404|not found.*api|endpoint.*not found|api.*changed|invalid.*response.*format|response.*format.*changed/i.test(errorMessage)) {
+    if (
+      /404|not found.*api|endpoint.*not found|api.*changed|invalid.*response.*format|response.*format.*changed/i.test(
+        errorMessage,
+      )
+    ) {
       return ScrapingErrorType.ApiEndpointChanged;
     }
 
     // Configuration issues
-    if (/invalid.*credentials|authentication.*failed|login.*failed|domain.*not.*allowed|origin.*not.*allowed/i.test(errorMessage)) {
+    if (
+      /invalid.*credentials|authentication.*failed|login.*failed|domain.*not.*allowed|origin.*not.*allowed/i.test(
+        errorMessage,
+      )
+    ) {
       return ScrapingErrorType.ConfigurationError;
     }
 
@@ -85,7 +115,10 @@ export class ErrorClassifier {
     }
 
     // Network timeouts (may be temporary)
-    if (errorMessage.includes('timeout') && !errorMessage.includes('selector')) {
+    if (
+      errorMessage.includes("timeout") &&
+      !errorMessage.includes("selector")
+    ) {
       return ScrapingErrorType.NetworkError;
     }
 
@@ -103,9 +136,9 @@ export class ErrorClassifier {
    * Always creates an error - no filtering at this level
    */
   static createScrapingError(
-    error: Error, 
-    site: string, 
-    url: string
+    error: Error,
+    site: string,
+    url: string,
   ): ScrapingError {
     return {
       site,
@@ -122,39 +155,48 @@ export class ErrorClassifier {
    */
   private static createErrorDescription(error: Error): string {
     const errorMessage = error.message.toLowerCase();
-    
-    if (errorMessage.includes('selector') || errorMessage.includes('element')) {
+
+    if (errorMessage.includes("selector") || errorMessage.includes("element")) {
       return `Site structure has changed - expected elements not found`;
     }
-    
-    if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+
+    if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
       return `Authentication failed - access denied`;
     }
-    
-    if (errorMessage.includes('cloudflare') || errorMessage.includes('challenge')) {
+
+    if (
+      errorMessage.includes("cloudflare") ||
+      errorMessage.includes("challenge")
+    ) {
       return `Anti-bot protection triggered - manual intervention may be required`;
     }
-    
-    if (errorMessage.includes('connection refused') || errorMessage.includes('host')) {
+
+    if (
+      errorMessage.includes("connection refused") ||
+      errorMessage.includes("host")
+    ) {
       return `Site is down or unreachable`;
     }
-    
-    if (errorMessage.includes('api') || errorMessage.includes('endpoint')) {
+
+    if (errorMessage.includes("api") || errorMessage.includes("endpoint")) {
       return `API endpoint has changed or been removed`;
     }
-    
-    if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+
+    if (
+      errorMessage.includes("rate limit") ||
+      errorMessage.includes("too many requests")
+    ) {
       return `Rate limit exceeded - may resolve automatically`;
     }
-    
-    if (errorMessage.includes('timeout')) {
+
+    if (errorMessage.includes("timeout")) {
       return `Network timeout - may be temporary`;
     }
-    
-    if (errorMessage.includes('ssl') || errorMessage.includes('certificate')) {
+
+    if (errorMessage.includes("ssl") || errorMessage.includes("certificate")) {
       return `SSL/TLS certificate issue - may be temporary`;
     }
-    
+
     return `Error occurred: ${error.message}`;
   }
 }

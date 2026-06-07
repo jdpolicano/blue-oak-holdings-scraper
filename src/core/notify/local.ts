@@ -1,32 +1,25 @@
 import { Listing } from "../models/listing.js";
 import { ScrapingError } from "../models/error.js";
-import { BaseNotifier } from "./base.js";
 import { Notifier } from "./index.js";
+import { buildListingPayloads, buildErrorPayloads } from "./helpers.js";
 import { Logger } from "pino";
 
 /**
- * LocalNotifier is a concrete implementation of the Notifier interface.
- * It is responsible for handling notifications locally, such as logging
- * new listings to the console or a file.
+ * LocalNotifier logs notifications to the console for development/debugging.
  */
-export class LocalNotifier extends BaseNotifier implements Notifier {
-  private logger: Logger;
+export class LocalNotifier implements Notifier {
+  private readonly logger: Logger;
 
   /**
-   * Constructor for LocalNotifier.
-   * @param logger - An instance of the Pino logger used for structured logging.
-   * The logger is scoped to the LocalNotifier component for better traceability.
+   * @param logger - Logger instance for structured logging
    */
   constructor(logger: Logger) {
-    super();
     this.logger = logger.child({ component: LocalNotifier.name });
   }
 
   /**
-   * Notify method processes a list of new listings and logs the notification payloads.
-   * @param listings - An array of Listing objects representing new listings to notify about.
-   * If the array is empty, a message is logged indicating no new listings.
-   * Otherwise, the method builds HTML and text payloads for the listings and logs them.
+   * Logs new listings to the console.
+   * @param listings - Array of new listings to notify about
    */
   async notify(listings: Listing[]): Promise<void> {
     if (!listings.length) {
@@ -34,20 +27,15 @@ export class LocalNotifier extends BaseNotifier implements Notifier {
       return;
     }
 
-    // Build the notification payloads (HTML and plain text) for the listings.
-    const { html, text } = await this.buildPayloads(listings);
+    const { html, text } = await buildListingPayloads(listings);
 
-    // Log the generated notification payloads for debugging or auditing purposes.
     this.logger.info(`New Listings HTML: ${html}`);
     this.logger.info(`New Listings Text: ${text}`);
-    return;
   }
 
   /**
-   * Notify method processes scraping errors and logs the notification payloads.
-   * @param errors - An array of ScrapingError objects representing scraping errors to notify about.
-   * If the array is empty, a message is logged indicating no scraping errors.
-   * Otherwise, the method builds HTML and text payloads for the errors and logs them.
+   * Logs scraping errors to the console.
+   * @param errors - Array of scraping errors to notify about
    */
   async notifyScrapingErrors(errors: ScrapingError[]): Promise<void> {
     if (!errors.length) {
@@ -55,12 +43,9 @@ export class LocalNotifier extends BaseNotifier implements Notifier {
       return;
     }
 
-    // Build the notification payloads (HTML and plain text) for the errors.
-    const { html, text } = await this.buildErrorPayloads(errors);
+    const { html, text } = await buildErrorPayloads(errors);
 
-    // Log the generated notification payloads for debugging or auditing purposes.
     this.logger.info(`Scraping Errors HTML: ${html}`);
     this.logger.info(`Scraping Errors Text: ${text}`);
-    return;
   }
 }

@@ -8,6 +8,7 @@ const logger = pino({
 try {
   const config = await Config.getConfig();
   const handle = await createScrapeHandle(config, logger);
+  const notifier = createNotifier(config, logger);
   const scrapeResult = await handle.run();
   
   // Send listing notifications if new listings found
@@ -16,7 +17,6 @@ try {
       { newListings: scrapeResult.listings.length },
       "New listings found! Sending notification via SES.",
     );
-    const notifier = createNotifier(config, logger);
     await notifier.notify(scrapeResult.listings);
   } else {
     logger.info("No new listings found.");
@@ -31,7 +31,6 @@ try {
       },
       "Scraping errors detected! Sending error notification via SES.",
     );
-    const notifier = createNotifier(config, logger);
     await notifier.notifyScrapingErrors(scrapeResult.errors);
   } else {
     logger.info("No scraping errors detected.");

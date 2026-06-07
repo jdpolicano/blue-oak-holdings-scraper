@@ -1,100 +1,91 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { Listing } from "../models/listing.js";
 import { ScrapingError } from "../models/error.js";
-import { BaseNotifier } from "./base.js";
 import { Notifier } from "./index.js";
+import { buildListingPayloads, buildErrorPayloads } from "./helpers.js";
 import { Logger } from "pino";
 
 // Initialize the AWS SES client. This is used to send emails.
 const ses = new SESClient({});
 
 /**
- * SESNotifier is responsible for sending email notifications about new listings
- * using AWS Simple Email Service (SES).
+ * Sends email notifications via AWS SES.
  */
-export class SESNotifier extends BaseNotifier implements Notifier {
-  private logger: Logger; // Logger instance for structured logging.
-  private recipients: string[]; // List of email addresses to notify.
-  private sender: string; // Email address from which notifications are sent.
+export class SESNotifier implements Notifier {
+  private readonly logger: Logger;
+  private readonly recipients: string[];
+  private readonly sender: string;
 
   /**
-   * Constructor for SESNotifier.
-   * @param sender - The email address that will appear as the sender of the notifications.
-   * @param recipients - An array of email addresses that will receive the notifications.
-   * @param logger - A logger instance for logging information and errors.
+   * @param sender - The email address that will appear as the sender
+   * @param recipients - Array of email addresses to receive notifications
+   * @param logger - Logger instance for structured logging
    */
   constructor(sender: string, recipients: string[], logger: Logger) {
-    super();
     this.sender = sender;
     this.recipients = recipients;
-    this.logger = logger.child({ component: SESNotifier.name }); // Create a child logger with the component name.
+    this.logger = logger.child({ component: SESNotifier.name });
   }
 
   /**
    * Sends notifications about new listings via email.
-   * @param listings - An array of Listing objects representing the new listings to notify about.
-   * If the array is empty, no email will be sent.
+   * @param listings - Array of new listings to notify about
    */
   async notify(listings: Listing[]): Promise<void> {
     if (!listings.length) {
-      this.logger.info("No new listings to notify."); // Log if there are no listings to notify about.
+      this.logger.info("No new listings to notify.");
       return;
     }
 
-    // Build the email payloads (HTML and plain text versions) for the listings.
-    const { html, text } = await this.buildPayloads(listings);
+    const { html, text } = await buildListingPayloads(listings);
 
-    // Send the email using AWS SES.
     await ses.send(
       new SendEmailCommand({
-        Destination: { ToAddresses: this.recipients }, // Recipients of the email.
+        Destination: { ToAddresses: this.recipients },
         Message: {
-          Subject: { Data: "New Listings Available" }, // Subject line of the email.
+          Subject: { Data: "New Listings Available" },
           Body: {
-            Html: { Data: html }, // HTML version of the email body.
-            Text: { Data: text }, // Plain text version of the email body.
+            Html: { Data: html },
+            Text: { Data: text },
           },
         },
-        Source: this.sender, // Sender email address.
+        Source: this.sender,
       }),
     );
 
-    // Log the successful sending of the notification.
     this.logger.info(`Sent notification for ${listings.length} new listings.`);
   }
 
   /**
    * Sends notifications about scraping errors via email.
-   * @param errors - An array of ScrapingError objects representing the scraping errors to notify about.
-   * If the array is empty, no email will be sent.
+   * @param errors - Array of scraping errors to notify about
    */
   async notifyScrapingErrors(errors: ScrapingError[]): Promise<void> {
     if (!errors.length) {
-      this.logger.info("No scraping errors to notify."); // Log if there are no errors to notify about.
+      this.logger.info("No scraping errors to notify.");
       return;
     }
 
-    // Build the email payloads (HTML and plain text versions) for the errors.
-    const { html, text } = await this.buildErrorPayloads(errors);
+    const { html, text } = await buildErrorPayloads(errors);
 
-    // Send the email using AWS SES.
     await ses.send(
       new SendEmailCommand({
-        Destination: { ToAddresses: this.recipients }, // Recipients of the email.
+        Destination: { ToAddresses: this.recipients },
         Message: {
-          Subject: { 
-            Data: `🚨 Scraping Errors Detected (${errors.length} across ${[...new Set(errors.map(e => e.site))].length} sites)` 
-          }, // Subject line of the email.
+          Subject: {
+            Data: `🚨 Scraping Errors Detected (${errors.length} across ${[...new Set(errors.map((e) => e.site))].length} sites)`,
+          },
           Body: {
-            Html: { Data: html }, // HTML version of the email body.
-            Text: { Data: text }, // Plain text version of the email body.
+            Html: { Data: html },
+            Text: { Data: text },
           },
         },
-        Source: this.sender, // Sender email address.
+        Source: this.sender,
       }),
     );
 
-    // Log the successful sending of the notification.
-    this.logger.info(`Sent scraping error notification for ${errors.length} errors.`);
+    this.logger.info(
+      `Sent scraping error notification for ${errors.length} errors.`,
+    );
   }
 }
