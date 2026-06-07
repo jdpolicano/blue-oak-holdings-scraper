@@ -10,14 +10,15 @@ const BOSS_GI_FIRST_PAGE_SIZE = 100;
 const START_SEARCH_SELECTOR = 'input[value="Start Search"]';
 const DISPLAY_ALL_SELECTOR = 'input[name="displayall"][value="All"]';
 const LISTING_SELECTOR = ".catdisplay";
+const LISTING_ID_PATTERN = /(?<id>[a-zA-Z]+\s*-\s*\d+\s*-\s*\d+)/;
 const ALL_LISTINGS_SUMMARY_PATTERN =
   /Displaying Listing\(s\) 1 to (?<total>\d+) of \k<total> Total Listing\(s\)/;
 
 export class BossGI implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
   site = "bossgi";
-  baseUrl = "https://bossgi.com/";
-  path = "/businesses-over-a-million";
+  baseUrl = "https://bbms.info/";
+  path = "/cgi-bin/a-bus2.asp?folder=bbf-4110&src=bus-all";
 
   getContainerLocator(page: Page): Locator {
     return page.locator(LISTING_SELECTOR).locator("xpath=ancestor::tbody[1]");
@@ -37,7 +38,8 @@ export class BossGI implements BasePageObjectPaginated {
     if (!title) {
       throw new Error("Title is required to extract ID");
     }
-    const match = title.match(/(?<id>[a-zA-Z]+\s*-\s*\d+\s*-\s*\d+)/);
+
+    const match = title.match(LISTING_ID_PATTERN);
     if (!match || !match.groups) {
       throw new Error(`ID format not recognized: ${title}`);
     }
@@ -99,15 +101,6 @@ export class BossGI implements BasePageObjectPaginated {
     );
   }
 
-  async getIdString(
-    _page: Page,
-    _container: Locator,
-    title: string,
-    _href: string,
-  ): Promise<string> {
-    return title;
-  }
-
   async onPageLoad(page: Page): Promise<void> {
     const startSearchButton = page.locator(START_SEARCH_SELECTOR).first();
     const firstListing = page.locator(LISTING_SELECTOR).first();
@@ -132,10 +125,8 @@ export class BossGI implements BasePageObjectPaginated {
     }
   }
 
-  async getUrls(page: Page): Promise<string[]> {
+  async getUrls(_: Page): Promise<string[]> {
     const url = new URL(this.path, this.baseUrl).toString();
-    await page.goto(url);
-    const frame = page.frames()[1];
-    return [frame.url()];
+    return [url];
   }
 }
