@@ -18,6 +18,7 @@ This is a TypeScript ESM scraper for business brokerage listings. Source code li
 ## Coding Style & Naming Conventions
 
 Use strict TypeScript with `module` and `moduleResolution` set to `nodenext`. Keep source files in ESM style and include `.js` extensions in relative imports, as existing files do. Use two-space indentation, double quotes, and named exports where practical. Adapter class names should be PascalCase, while adapter filenames and `site` identifiers should stay lowercase, for example `src/adapters/bizbuysell.ts` with `site = "bizbuysell"`.
+Prefer linear `async`/`await` control flow over `.then()` chains. Name scraper-specific selectors, timeouts, page sizes, and regex patterns as constants instead of embedding magic values inside adapter logic.
 
 ## Testing Guidelines
 
