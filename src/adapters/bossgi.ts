@@ -5,6 +5,14 @@ import {
   SiteStrategy,
 } from "./base.js";
 
+const BOSS_GI_PAGE_TIMEOUT_MS = 60_000;
+const BOSS_GI_FIRST_PAGE_SIZE = 100;
+const START_SEARCH_SELECTOR = 'input[value="Start Search"]';
+const DISPLAY_ALL_SELECTOR = 'input[name="displayall"][value="All"]';
+const LISTING_SELECTOR = ".catdisplay";
+const ALL_LISTINGS_SUMMARY_PATTERN =
+  /Displaying Listing\(s\) 1 to (?<total>\d+) of \k<total> Total Listing\(s\)/;
+
 export class BossGI implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;
   site = "bossgi";
@@ -12,7 +20,7 @@ export class BossGI implements BasePageObjectPaginated {
   path = "/businesses-over-a-million";
 
   getContainerLocator(page: Page): Locator {
-    return page.locator(".catdisplay").locator("xpath=ancestor::tbody[1]");
+    return page.locator(LISTING_SELECTOR).locator("xpath=ancestor::tbody[1]");
   }
 
   async getTitle(container: Locator): Promise<string | null> {
@@ -29,11 +37,66 @@ export class BossGI implements BasePageObjectPaginated {
     if (!title) {
       throw new Error("Title is required to extract ID");
     }
-    const match = title.match(/(?<id>[a-zA-Z]+-\d+-\d+)/);
+    const match = title.match(/(?<id>[a-zA-Z]+\s*-\s*\d+\s*-\s*\d+)/);
     if (!match || !match.groups) {
       throw new Error(`ID format not recognized: ${title}`);
     }
-    return match.groups.id;
+    return match.groups.id.replace(/\s+/g, "");
+  }
+
+  private async waitForInitialResults(
+    page: Page,
+    startSearchButton: Locator,
+    firstListing: Locator,
+  ): Promise<void> {
+    const searchFormReady = (async () => {
+      await startSearchButton.waitFor({
+        state: "attached",
+        timeout: BOSS_GI_PAGE_TIMEOUT_MS,
+      });
+      return startSearchButton;
+    })();
+
+    const listingsReady = (async () => {
+      await firstListing.waitFor({
+        state: "attached",
+        timeout: BOSS_GI_PAGE_TIMEOUT_MS,
+      });
+      return null;
+    })();
+
+    const buttonToClick = await Promise.race([searchFormReady, listingsReady]);
+    if (!buttonToClick) return;
+
+    await Promise.all([
+      page.waitForURL(/\/cgi-bin\/a-bus2ff\.asp\?forsale=go/, {
+        timeout: BOSS_GI_PAGE_TIMEOUT_MS,
+      }),
+      buttonToClick.click(),
+    ]);
+  }
+
+  private async waitForAllListings(page: Page): Promise<void> {
+    await page.waitForFunction(
+      ({ firstPageSize, listingSelector, summaryPatternSource }) => {
+        const text = document.body.textContent?.replace(/\s+/g, " ") ?? "";
+        const summaryPattern = new RegExp(summaryPatternSource);
+        const match = text.match(summaryPattern);
+        if (!match?.groups?.total) return false;
+
+        const total = Number(match.groups.total);
+        return (
+          total > firstPageSize &&
+          document.querySelectorAll(listingSelector).length === total
+        );
+      },
+      {
+        firstPageSize: BOSS_GI_FIRST_PAGE_SIZE,
+        listingSelector: LISTING_SELECTOR,
+        summaryPatternSource: ALL_LISTINGS_SUMMARY_PATTERN.source,
+      },
+      { timeout: BOSS_GI_PAGE_TIMEOUT_MS },
+    );
   }
 
   async getIdString(
@@ -46,8 +109,27 @@ export class BossGI implements BasePageObjectPaginated {
   }
 
   async onPageLoad(page: Page): Promise<void> {
-    await page.locator(".displaysmall").last().click();
-    await page.waitForLoadState("networkidle");
+    const startSearchButton = page.locator(START_SEARCH_SELECTOR).first();
+    const firstListing = page.locator(LISTING_SELECTOR).first();
+
+    await this.waitForInitialResults(page, startSearchButton, firstListing);
+    await firstListing.waitFor({
+      state: "attached",
+      timeout: BOSS_GI_PAGE_TIMEOUT_MS,
+    });
+
+    const displayAllButton = page.locator(DISPLAY_ALL_SELECTOR).first();
+    if ((await displayAllButton.count()) > 0) {
+      await Promise.all([
+        page.waitForLoadState("domcontentloaded"),
+        displayAllButton.click(),
+      ]);
+      await this.waitForAllListings(page);
+      await firstListing.waitFor({
+        state: "attached",
+        timeout: BOSS_GI_PAGE_TIMEOUT_MS,
+      });
+    }
   }
 
   async getUrls(page: Page): Promise<string[]> {

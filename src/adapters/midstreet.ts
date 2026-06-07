@@ -29,8 +29,9 @@ export class Midstreet implements BasePageObjectPaginated {
     return new URL(this.path, this.baseUrl).toString();
   }
 
-  async getId({ href }: IdSearchContext): Promise<string> {
-    return href;
+  async getId({ href, title }: IdSearchContext): Promise<string> {
+    if (!title) return href;
+    return `${href}:${title.replace(/\s+/g, " ").trim()}`;
   }
 
   async onPageLoad(page: Page): Promise<void> {
