@@ -17,6 +17,7 @@
     "prepare": "husky",
     "cfn-lint": "cfn-lint ./infra/**/*.yaml",
     "aws:run-dry-run": "bash scripts/run-aws-dry-run.sh",
+    "aws:screenshots:latest": "bash scripts/print-latest-screenshots.sh",
     "aws:logs:tail": "aws logs tail /ecs/blue-oak-holdings-scraper --region us-east-1 --follow"
   },
   "repository": {

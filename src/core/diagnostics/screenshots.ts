@@ -20,6 +20,12 @@ export interface ScreenshotArtifact {
   screenshotUrl: string;
 }
 
+export interface ScreenshotCandidate {
+  screenshotCapturedAt: string;
+  screenshotKey: string;
+  screenshotBody: Uint8Array;
+}
+
 export class ScreenshotDiagnostics {
   private readonly s3 = new S3Client({});
   private readonly bucket: string;
@@ -38,6 +44,15 @@ export class ScreenshotDiagnostics {
     page: Page,
     error: ScrapingError,
   ): Promise<ScreenshotArtifact | null> {
+    const candidate = await this.captureFailureCandidate(page, error);
+    if (!candidate) return null;
+    return this.uploadFailureCandidate(candidate, error);
+  }
+
+  async captureFailureCandidate(
+    page: Page,
+    error: ScrapingError,
+  ): Promise<ScreenshotCandidate | null> {
     if (page.isClosed()) {
       this.logger.warn(
         { site: error.site, url: error.url },
@@ -51,17 +66,44 @@ export class ScreenshotDiagnostics {
 
     try {
       const screenshot = await page.screenshot({ fullPage: true });
+      return {
+        screenshotCapturedAt: capturedAt.toISOString(),
+        screenshotKey: key,
+        screenshotBody: screenshot,
+      };
+    } catch (screenshotError) {
+      this.logger.warn(
+        {
+          site: error.site,
+          url: error.url,
+          key,
+          err: screenshotError,
+        },
+        "Failed to capture failure screenshot",
+      );
+      return null;
+    }
+  }
+
+  async uploadFailureCandidate(
+    candidate: ScreenshotCandidate,
+    error: ScrapingError,
+  ): Promise<ScreenshotArtifact | null> {
+    try {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
-          Key: key,
-          Body: screenshot,
+          Key: candidate.screenshotKey,
+          Body: candidate.screenshotBody,
           ContentType: SCREENSHOT_CONTENT_TYPE,
         }),
       );
       const screenshotUrl = await getSignedUrl(
         this.s3,
-        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: candidate.screenshotKey,
+        }),
         { expiresIn: PRESIGNED_URL_EXPIRES_SECONDS },
       );
 
@@ -70,14 +112,14 @@ export class ScreenshotDiagnostics {
           site: error.site,
           url: error.url,
           bucket: this.bucket,
-          key,
+          key: candidate.screenshotKey,
         },
         "Uploaded failure screenshot",
       );
 
       return {
-        screenshotCapturedAt: capturedAt.toISOString(),
-        screenshotKey: key,
+        screenshotCapturedAt: candidate.screenshotCapturedAt,
+        screenshotKey: candidate.screenshotKey,
         screenshotUrl,
       };
     } catch (screenshotError) {
@@ -86,10 +128,10 @@ export class ScreenshotDiagnostics {
           site: error.site,
           url: error.url,
           bucket: this.bucket,
-          key,
+          key: candidate.screenshotKey,
           err: screenshotError,
         },
-        "Failed to capture failure screenshot",
+        "Failed to upload failure screenshot",
       );
       return null;
     }
