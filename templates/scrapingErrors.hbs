@@ -73,7 +73,11 @@
           </div>
           <div class="error-meta">
             URL: <code>{{url}}</code><br>
-            Time: {{timestamp}}
+            Time: {{timestamp}}<br>
+            {{#if screenshotUrl}}
+              Screenshot: <a href="{{screenshotUrl}}" target="_blank">View failure screenshot</a><br>
+              S3 key: <code>{{screenshotKey}}</code>
+            {{/if}}
           </div>
         </li>
       {{/each}}

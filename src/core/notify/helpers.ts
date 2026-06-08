@@ -65,7 +65,12 @@ export async function buildErrorPayloads(
   });
 
   const text = errors
-    .map((e: ScrapingError) => `[${e.errorType}] ${e.site}: ${e.description}`)
+    .map((e: ScrapingError) => {
+      const screenshot = e.screenshotUrl
+        ? `\nScreenshot: ${e.screenshotUrl}\nS3 key: ${e.screenshotKey}`
+        : "";
+      return `[${e.errorType}] ${e.site}: ${e.description}${screenshot}`;
+    })
     .join("\n");
 
   return { html, text };

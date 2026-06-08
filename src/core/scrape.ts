@@ -3,6 +3,7 @@ import { Storage } from "./storage/index.js";
 import { Listing } from "./models/listing.js";
 import { ScrapingError, ErrorClassifier } from "./models/error.js";
 import { BrowserRunner, BrowserRunnerOptions } from "./browser/runner.js";
+import { ScreenshotDiagnostics } from "./diagnostics/screenshots.js";
 
 import {
   BaseApiObject,
@@ -21,6 +22,7 @@ export interface ScrapeResult {
 
 interface ScrapeHandleOverrides {
   sites: BaseScrapeObject[];
+  screenshotDiagnostics?: ScreenshotDiagnostics;
 }
 
 interface ScrapeHandleInternalOverrides {

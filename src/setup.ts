@@ -5,6 +5,7 @@ import { Logger } from "pino";
 import { LocalNotifier, SESNotifier } from "./core/notify/index.js";
 import isDocker from "is-docker";
 import { Config } from "./core/config/config.js";
+import { ScreenshotDiagnostics } from "./core/diagnostics/screenshots.js";
 
 export const IS_FARGATE = !!process.env.AWS_EXECUTION_ENV;
 export const IS_DOCKER = isDocker();
@@ -50,14 +51,21 @@ export function createNotifier(config: Config, logger: Logger) {
 
 export async function createScrapeHandle(config: Config, logger: Logger) {
   const { sites, concurrency, browserOptions } = config.get("scraper");
+  const dataSourceConfig = config.get("database");
   const regSites = sites.length ? registry.list(sites) : registry.all();
   const storage = await createStorageAdapter(config, logger);
+  const screenshotDiagnostics = new ScreenshotDiagnostics({
+    bucket: dataSourceConfig.bucket,
+    dryRun: config.get("dryRun"),
+    logger,
+  });
   const handleConfig: ScrapeHandleOptions = {
     logger,
     storage,
     concurrency,
     sites: regSites,
     browserOptions,
+    screenshotDiagnostics,
   };
   return ScrapeHandle.create(handleConfig);
 }

@@ -4,6 +4,7 @@ import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 import { Storage } from "../storage/index.js";
 import { ScrapingError, ErrorClassifier } from "../models/error.js";
+import { ScreenshotDiagnostics } from "../diagnostics/screenshots.js";
 
 import {
   BasePageObjectPaginated,
@@ -27,6 +28,8 @@ export interface BrowserRunnerOptions {
   concurrency: number;
   /** Playwright launch options (headless, proxy, etc.). */
   browserOptions?: LaunchOptions;
+  /** Optional diagnostics sink for browser failure artifacts. */
+  screenshotDiagnostics?: ScreenshotDiagnostics;
 }
 
 /** Internal, fully-resolved options passed to the handle. */
@@ -37,6 +40,7 @@ interface BrowserRunnerOptionsInternal {
   concurrency: number;
   browser: Browser;
   pages: Page[];
+  screenshotDiagnostics?: ScreenshotDiagnostics;
 }
 
 interface ListingTaskPaginated {
@@ -64,6 +68,7 @@ export class BrowserRunner {
   private readonly storage: Storage;
   private readonly browser: Browser;
   private readonly concurrency: number;
+  private readonly screenshotDiagnostics?: ScreenshotDiagnostics;
 
   /** Preallocated Playwright pages serving as workers. */
   private readonly pages: Page[];
@@ -84,6 +89,7 @@ export class BrowserRunner {
     pages,
     storage,
     concurrency,
+    screenshotDiagnostics,
   }: BrowserRunnerOptionsInternal) {
     this.logger = logger.child({ component: BrowserRunner.name });
     this.sites = sites;
@@ -91,6 +97,7 @@ export class BrowserRunner {
     this.pages = pages;
     this.storage = storage;
     this.concurrency = concurrency;
+    this.screenshotDiagnostics = screenshotDiagnostics;
   }
 
   /**
@@ -98,7 +105,14 @@ export class BrowserRunner {
    * @remarks Uses `puppeteer-extra-plugin-stealth` via `playwright-extra`.
    */
   static async create(opts: BrowserRunnerOptions) {
-    const { logger, sites, storage, browserOptions, concurrency } = opts;
+    const {
+      logger,
+      sites,
+      storage,
+      browserOptions,
+      concurrency,
+      screenshotDiagnostics,
+    } = opts;
 
     chromium.use(stealth());
     const browser = await chromium.launch(browserOptions);
@@ -113,6 +127,7 @@ export class BrowserRunner {
       concurrency: Math.max(1, concurrency),
       browser,
       pages,
+      screenshotDiagnostics,
     });
   }
 
@@ -193,8 +208,9 @@ export class BrowserRunner {
         const scrapingError = ErrorClassifier.createScrapingError(
           err as Error,
           site.site,
-          site.baseUrl
+          site.baseUrl,
         );
+        await this.attachScreenshot(tmp, scrapingError);
 
         this.errors.push(scrapingError);
         this.logger.warn(
@@ -315,8 +331,9 @@ export class BrowserRunner {
       const scrapingError = ErrorClassifier.createScrapingError(
         err as Error,
         task.siteHandler.site,
-        task.url
+        task.url,
       );
+      await this.attachScreenshot(page, scrapingError);
 
       this.errors.push(scrapingError);
       this.logger.warn(
@@ -332,6 +349,23 @@ export class BrowserRunner {
     }
 
     return pageIdx;
+  }
+
+  private async attachScreenshot(
+    page: Page,
+    error: ScrapingError,
+  ): Promise<void> {
+    if (!this.screenshotDiagnostics) return;
+
+    const artifact = await this.screenshotDiagnostics.captureFailure(
+      page,
+      error,
+    );
+    if (!artifact) return;
+
+    error.screenshotCapturedAt = artifact.screenshotCapturedAt;
+    error.screenshotKey = artifact.screenshotKey;
+    error.screenshotUrl = artifact.screenshotUrl;
   }
 
   // ──────────────────────────────

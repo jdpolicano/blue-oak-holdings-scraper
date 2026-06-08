@@ -15,7 +15,9 @@
     "docker-debug": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true -e LOG_LEVEL=debug scrapy-brokers-poc",
     "install-browser": "playwright install --with-deps chromium",
     "prepare": "husky",
-    "cfn-lint": "cfn-lint ./infra/**/*.yaml"
+    "cfn-lint": "cfn-lint ./infra/**/*.yaml",
+    "aws:run-dry-run": "bash scripts/run-aws-dry-run.sh",
+    "aws:logs:tail": "aws logs tail /ecs/blue-oak-holdings-scraper --region us-east-1 --follow"
   },
   "repository": {
     "type": "git",
@@ -32,6 +34,7 @@
     "@aws-sdk/client-s3": "^3.913.0",
     "@aws-sdk/client-ses": "^3.913.0",
     "@aws-sdk/lib-storage": "^3.913.0",
+    "@aws-sdk/s3-request-presigner": "^3.916.0",
     "csv": "^6.4.1",
     "env-schema": "^6.1.0",
     "graffle": "^8.0.0-next.187",

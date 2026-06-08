@@ -11,6 +11,12 @@ export interface ScrapingError {
   timestamp: string;
   /** Raw error object for logging purposes */
   rawError: Error;
+  /** S3 key for an error screenshot, when captured */
+  screenshotKey?: string;
+  /** Presigned URL for an error screenshot, when captured */
+  screenshotUrl?: string;
+  /** Timestamp when the screenshot was captured */
+  screenshotCapturedAt?: string;
 }
 
 export const enum ScrapingErrorType {
