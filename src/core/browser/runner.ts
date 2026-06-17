@@ -4,7 +4,10 @@ import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 import { Storage } from "../storage/index.js";
 import { ScrapingError, ErrorClassifier } from "../models/error.js";
-import { ScreenshotDiagnostics } from "../diagnostics/screenshots.js";
+import {
+  ScreenshotCandidate,
+  ScreenshotDiagnostics,
+} from "../diagnostics/screenshots.js";
 
 import {
   BasePageObjectPaginated,
@@ -57,6 +60,11 @@ interface ListingTaskHuman {
 
 type ListingTask = ListingTaskPaginated | ListingTaskHuman;
 
+interface PendingFailureScreenshot {
+  error: ScrapingError;
+  candidate: ScreenshotCandidate;
+}
+
 /**
  * BrowserRunner manages the browser lifecycle and a small worker pool based on `Promise.race`.
  * Each worker corresponds to a Playwright Page. As soon as a page completes a task,
@@ -75,6 +83,15 @@ export class BrowserRunner {
 
   /** FIFO queue of pending tasks. */
   private readonly taskQueue: ListingTask[] = [];
+
+  /** Successful listing counts by site. Used to distinguish partial failures from total failures. */
+  private readonly siteListingCounts = new Map<string, number>();
+
+  /** Screenshot candidates captured for failed tasks, uploaded only if the whole site fails. */
+  private readonly pendingFailureScreenshots = new Map<
+    string,
+    PendingFailureScreenshot[]
+  >();
 
   /**
    * Array indexed by page index. Each slot holds the in-flight promise for that page,
@@ -155,6 +172,7 @@ export class BrowserRunner {
       );
       await this.processUntilQueueEmpty();
       await this.drainInFlight();
+      await this.uploadCompleteFailureScreenshots();
     } finally {
       await this.teardown();
     }
@@ -306,6 +324,7 @@ export class BrowserRunner {
 
       if (listings.length) {
         await this.storage.appendListing(...listings);
+        this.recordSiteListings(task.siteHandler.site, listings.length);
         this.logger.info(
           {
             site: task.siteHandler.site,
@@ -333,7 +352,7 @@ export class BrowserRunner {
         task.siteHandler.site,
         task.url,
       );
-      await this.attachScreenshot(page, scrapingError);
+      await this.deferScreenshot(page, scrapingError);
 
       this.errors.push(scrapingError);
       this.logger.warn(
@@ -351,6 +370,13 @@ export class BrowserRunner {
     return pageIdx;
   }
 
+  private recordSiteListings(site: string, count: number): void {
+    this.siteListingCounts.set(
+      site,
+      (this.siteListingCounts.get(site) ?? 0) + count,
+    );
+  }
+
   private async attachScreenshot(
     page: Page,
     error: ScrapingError,
@@ -366,6 +392,55 @@ export class BrowserRunner {
     error.screenshotCapturedAt = artifact.screenshotCapturedAt;
     error.screenshotKey = artifact.screenshotKey;
     error.screenshotUrl = artifact.screenshotUrl;
+  }
+
+  private async deferScreenshot(
+    page: Page,
+    error: ScrapingError,
+  ): Promise<void> {
+    if (!this.screenshotDiagnostics) return;
+
+    const candidate = await this.screenshotDiagnostics.captureFailureCandidate(
+      page,
+      error,
+    );
+    if (!candidate) return;
+
+    const siteCandidates = this.pendingFailureScreenshots.get(error.site) ?? [];
+    siteCandidates.push({ error, candidate });
+    this.pendingFailureScreenshots.set(error.site, siteCandidates);
+  }
+
+  private async uploadCompleteFailureScreenshots(): Promise<void> {
+    if (!this.screenshotDiagnostics) return;
+
+    for (const [site, pendingScreenshots] of this.pendingFailureScreenshots) {
+      const listingCount = this.siteListingCounts.get(site) ?? 0;
+      if (listingCount > 0) {
+        this.logger.info(
+          {
+            site,
+            listingCount,
+            discardedScreenshots: pendingScreenshots.length,
+          },
+          "Discarding failure screenshots because site produced listings",
+        );
+        continue;
+      }
+
+      for (const pending of pendingScreenshots) {
+        const artifact =
+          await this.screenshotDiagnostics.uploadFailureCandidate(
+            pending.candidate,
+            pending.error,
+          );
+        if (!artifact) continue;
+
+        pending.error.screenshotCapturedAt = artifact.screenshotCapturedAt;
+        pending.error.screenshotKey = artifact.screenshotKey;
+        pending.error.screenshotUrl = artifact.screenshotUrl;
+      }
+    }
   }
 
   // ──────────────────────────────
