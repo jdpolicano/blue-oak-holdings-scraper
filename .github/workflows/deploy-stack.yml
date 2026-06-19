@@ -54,8 +54,8 @@ jobs:
             exit 1
           fi
 
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
           echo "Using image: $IMAGE_URI"
 
       - name: Deploy CloudFormation
