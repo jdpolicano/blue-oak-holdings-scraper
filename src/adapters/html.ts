@@ -97,6 +97,52 @@ export function extractHref(html: string): string | null {
   return extractAttribute(html, "href");
 }
 
+export interface LinkListing {
+  title: string | null;
+  hrefText: string;
+  rawId: string;
+}
+
+export function parseLinkListings(
+  html: string,
+  hrefPattern: RegExp,
+  baseUrl: string,
+): LinkListing[] {
+  const listings = new Map<string, LinkListing>();
+  const linkPattern =
+    /<a\b[^>]*\bhref=(["'])(?<href>.*?)\1[^>]*>(?<inner>.*?)<\/a>/gis;
+
+  for (const match of html.matchAll(linkPattern)) {
+    const hrefText = match.groups?.href;
+    const inner = match.groups?.inner ?? "";
+    if (!hrefText || !hrefPattern.test(hrefText)) {
+      continue;
+    }
+
+    hrefPattern.lastIndex = 0;
+
+    const href = new URL(hrefText, baseUrl);
+    href.hash = "";
+    const rawId = normalizePath(href);
+    const title = extractLinkTitle(inner);
+    const current = listings.get(rawId);
+
+    if (!current || titleLength(title) > titleLength(current.title)) {
+      listings.set(rawId, {
+        title,
+        hrefText,
+        rawId,
+      });
+    }
+  }
+
+  return [...listings.values()];
+}
+
+export function normalizePath(url: URL): string {
+  return url.pathname.replace(/\/+$/, "") || "/";
+}
+
 export function cleanText(text: string): string {
   return decodeHtml(text).replace(/\s+/g, " ").trim();
 }
@@ -127,4 +173,14 @@ export function decodeHtml(text: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractLinkTitle(inner: string): string | null {
+  const alt = inner.match(/\balt=(["'])(?<value>.*?)\1/i)?.groups?.value;
+  const text = cleanText(stripTags(inner));
+  return text || (alt ? cleanText(alt) : null);
+}
+
+function titleLength(title: string | null): number {
+  return title?.length ?? 0;
 }

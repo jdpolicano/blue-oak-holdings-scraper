@@ -36,7 +36,7 @@ Keep changes scoped to the new or repaired site:
 - Register new adapters in `src/adapters/index.ts`.
 - Use TypeScript ESM style with `.js` relative imports, two-space indentation, double quotes, named exports where practical, and linear `async`/`await`.
 - Define selectors, timeouts, page sizes, API paths, and regexes as constants.
-- Avoid unrelated refactors, production recipient/config changes, credentials, and deployment-sensitive edits.
+- Avoid unrelated refactors, production recipient changes, credentials, and deployment-sensitive edits. When the user intends the adapter to ship to production, add the validated site identifier to `config/scrape.config.json`; otherwise leave production config untouched and state that explicitly.
 
 ## Validation
 

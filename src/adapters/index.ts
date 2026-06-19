@@ -33,6 +33,15 @@ import { JackimWoods } from "./jackimwoods.js";
 import { MetroBusinessAdvisors } from "./metrobusinessadvisors.js";
 import { TheNYBBGroup } from "./thenybbgroup.js";
 import { EarnedExits } from "./earnedexits.js";
+import { SunAcquisitions } from "./sunacquisitions.js";
+import { RoiBusinessBrokers } from "./roibusinessbrokers.js";
+import { MarigoldResources } from "./marigoldresources.js";
+import { BusinessTeam } from "./businessteam.js";
+import { SigmaMergers } from "./sigmamergers.js";
+import { CBITeam } from "./cbiteam.js";
+import { KCApex } from "./kcapex.js";
+import { AlliantBrokers } from "./alliantbrokers.js";
+import { IndianaEquityBrokers } from "./indianaequitybrokers.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -75,6 +84,15 @@ class Registry {
       MetroBusinessAdvisors,
       TheNYBBGroup,
       EarnedExits,
+      SunAcquisitions,
+      RoiBusinessBrokers,
+      MarigoldResources,
+      BusinessTeam,
+      SigmaMergers,
+      CBITeam,
+      KCApex,
+      AlliantBrokers,
+      IndianaEquityBrokers,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {
