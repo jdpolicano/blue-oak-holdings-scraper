@@ -1,5 +1,5 @@
 import { Locator, Page } from "playwright/test";
-import { Listing } from "../core/models/listing.js";
+import { Listing } from "../models/listing.js";
 import { Logger } from "pino";
 
 export const enum SiteStrategy {

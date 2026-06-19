@@ -3,7 +3,7 @@ import {
   BasePageObjectPaginated,
   IdSearchContext,
   SiteStrategy,
-} from "./base.js";
+} from "../core/adapters/base.js";
 
 export class BayStateBusinessBrokers implements BasePageObjectPaginated {
   siteStrategy: SiteStrategy.Paginated = SiteStrategy.Paginated;

@@ -3,7 +3,7 @@ import {
   BasePageObjectPaginated,
   IdSearchContext,
   SiteStrategy,
-} from "./base.js";
+} from "../core/adapters/base.js";
 
 const BOSS_GI_PAGE_TIMEOUT_MS = 60_000;
 const BOSS_GI_FIRST_PAGE_SIZE = 100;

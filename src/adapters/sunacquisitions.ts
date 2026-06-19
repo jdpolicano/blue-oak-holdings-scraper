@@ -1,4 +1,4 @@
-import { StaticListingsAdapter } from "./static-listings.js";
+import { StaticListingsAdapter } from "../core/adapters/static-listings.js";
 
 const LISTINGS_URL = "https://sunacquisitions.com/featured-business-listings/";
 

@@ -1,6 +1,6 @@
 import { Logger } from "pino";
 import { BaseApiObject, SiteStrategy } from "./base.js";
-import { Listing } from "../core/models/listing.js";
+import { Listing } from "../models/listing.js";
 import {
   LinkListing,
   fetchText,

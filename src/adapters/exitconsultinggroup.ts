@@ -3,7 +3,7 @@ import {
   BasePageObjectPaginated,
   IdSearchContext,
   SiteStrategy,
-} from "./base.js";
+} from "../core/adapters/base.js";
 
 const EXIT_PAGE_TIMEOUT_MS = 60_000;
 const LOAD_MORE_TIMEOUT_MS = 15_000;

@@ -4,7 +4,7 @@ import {
   BasePageObjectPaginated,
   IdSearchContext,
   SiteStrategy,
-} from "./base.js";
+} from "../core/adapters/base.js";
 import path from "node:path";
 
 export class SunbeltNetwork implements BasePageObjectPaginated {

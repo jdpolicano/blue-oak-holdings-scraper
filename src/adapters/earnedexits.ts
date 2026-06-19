@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { BaseApiObject, SiteStrategy } from "./base.js";
+import { BaseApiObject, SiteStrategy } from "../core/adapters/base.js";
 import { Listing } from "../core/models/listing.js";
 import {
   cleanText,
@@ -10,7 +10,7 @@ import {
   fetchText,
   hash,
   stripTags,
-} from "./html.js";
+} from "../core/adapters/html.js";
 
 const LISTINGS_URL = "https://earnedexits.com/listings/";
 const QUERY_API_URL = "https://earnedexits.com/wp-json/wp/v2/kadence_query/query";

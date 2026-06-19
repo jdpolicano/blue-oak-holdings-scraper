@@ -4,7 +4,7 @@ import { Logger } from "pino";
 import {
   BasePageObjectHuman,
   BasePageObjectPaginated,
-} from "../../adapters/base.js";
+} from "../adapters/base.js";
 import { createHash } from "node:crypto";
 import retry from "p-retry";
 

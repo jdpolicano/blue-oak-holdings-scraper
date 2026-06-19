@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { Logger } from "pino";
-import { BaseApiObject, SiteStrategy } from "./base.js";
+import { BaseApiObject, SiteStrategy } from "../core/adapters/base.js";
 import { Listing } from "../core/models/listing.js";
 
 const ORGANIZATION_ID = "cma5x9m7b00000u91riu4sc13";

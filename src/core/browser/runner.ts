@@ -13,7 +13,7 @@ import {
   BasePageObjectPaginated,
   BasePageObjectHuman,
   SiteStrategy,
-} from "../../adapters/base.js";
+} from "../adapters/base.js";
 
 import { PageRunner } from "../browser/page.js";
 

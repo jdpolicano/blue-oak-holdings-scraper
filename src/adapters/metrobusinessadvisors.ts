@@ -1,7 +1,7 @@
 import { Logger } from "pino";
-import { BaseApiObject, SiteStrategy } from "./base.js";
+import { BaseApiObject, SiteStrategy } from "../core/adapters/base.js";
 import { Listing } from "../core/models/listing.js";
-import { cleanText, fetchJson, hash, stripTags } from "./html.js";
+import { cleanText, fetchJson, hash, stripTags } from "../core/adapters/html.js";
 
 const LISTINGS_URL = "https://metrobusinessadvisors.com/business-for-sale/";
 const POSTS_API_URL = "https://metrobusinessadvisors.com/wp-json/wp/v2/posts";

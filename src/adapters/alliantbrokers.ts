@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { BaseApiObject, SiteStrategy } from "./base.js";
+import { BaseApiObject, SiteStrategy } from "../core/adapters/base.js";
 import { Listing } from "../core/models/listing.js";
 import {
   cleanText,
@@ -7,7 +7,7 @@ import {
   hash,
   normalizePath,
   stripTags,
-} from "./html.js";
+} from "../core/adapters/html.js";
 
 const LISTINGS_URL = "https://alliantbrokers.com/businesses-for-sale-4/";
 

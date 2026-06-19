@@ -13,7 +13,7 @@ import { BAMA } from "./bama.js";
 import { BatonMarket } from "./batonmarket.js";
 import { MorganWestfield } from "./morganwestfield.js";
 import { PronovaPartners } from "./pronovapartners.js";
-import { BaseScrapeObject } from "./base.js";
+import { BaseScrapeObject } from "../core/adapters/base.js";
 import { IAGMerger } from "./iagmerger.js";
 import { BossGI } from "./bossgi.js";
 import { LisitenAssociates } from "./lisitenassociates.js";

@@ -11,7 +11,7 @@ import {
   BasePageObjectHuman,
   SiteStrategy,
   BaseScrapeObject,
-} from "../adapters/base.js";
+} from "./adapters/base.js";
 
 export interface ScrapeResult {
   /** Listings that were successfully scraped */
