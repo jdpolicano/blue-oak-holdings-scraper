@@ -3,6 +3,7 @@ import { envSchema, JSONSchemaType } from "env-schema";
 interface Env {
   DRY_RUN: boolean;
   CONFIG_PATH: string;
+  SCRAPER_SITES: string;
 }
 
 const schema: JSONSchemaType<Env> = {
@@ -16,6 +17,10 @@ const schema: JSONSchemaType<Env> = {
     CONFIG_PATH: {
       type: "string",
       default: "./config/scrape.config.json",
+    },
+    SCRAPER_SITES: {
+      type: "string",
+      default: "",
     },
   },
 };

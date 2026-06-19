@@ -58,6 +58,14 @@ const programConfig = z.object({
 
 export type ProgramConfig = z.infer<typeof programConfig>;
 
+function parseScraperSitesOverride(sites: string): string[] | undefined {
+  const parsedSites = sites
+    .split(",")
+    .map((site) => site.trim())
+    .filter(Boolean);
+  return parsedSites.length ? parsedSites : undefined;
+}
+
 export class Config {
   config: ProgramConfig;
 
@@ -70,12 +78,16 @@ export class Config {
   }
 
   static async getConfig(): Promise<Config> {
-    const { CONFIG_PATH } = envConfig;
+    const { CONFIG_PATH, SCRAPER_SITES } = envConfig;
     const configRaw = await fs.readFile(CONFIG_PATH, {
       encoding: "utf-8",
     });
     const configJson = JSON.parse(configRaw);
     const validatedConfig = programConfig.parse(configJson);
+    const scraperSitesOverride = parseScraperSitesOverride(SCRAPER_SITES);
+    if (scraperSitesOverride) {
+      validatedConfig.scraper.sites = scraperSitesOverride;
+    }
     return new Config(validatedConfig);
   }
 }

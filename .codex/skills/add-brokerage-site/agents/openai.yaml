@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Brokerage Site"
+  short_description: "Add scraper adapters for brokerage sites"
+  default_prompt: "Use $add-brokerage-site to add a new brokerage listing site adapter."

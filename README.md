@@ -95,14 +95,14 @@ npm run docker-dev-local
 ### Production
 
 ```bash
-# Build production image
-docker build -t scrapy-brokers-poc .
+# Build and push an image to ECR
+npm run aws:ops -- image build-push --tag prod-$(git rev-parse --short HEAD)
 
-# Deploy to AWS Fargate
-aws cloudformation deploy \
-  --template-file infra/fargate-task-chromium.yaml \
-  --stack-name scrapy-brokers-poc
+# Deploy the scheduled production stack
+npm run aws:ops -- deploy scheduled --image-uri <imageUri> --confirm-production
 ```
+
+AWS operations are managed through the TypeScript CLI in [scripts/README.md](scripts/README.md). Use it for ECR image publishing and cleanup, ECS one-off dry runs, task log retrieval, and scheduled CloudFormation deployments.
 
 ## ⚙️ Configuration
 
@@ -217,8 +217,33 @@ The system supports 26+ business brokerage platforms:
 
 **Infrastructure as Code:**
 - CloudFormation templates in `infra/`
+- AWS operations CLI in `scripts/`
 - Automated CI/CD pipeline
 - Environment-specific deployments
+
+### AWS Operations CLI
+
+Common production and validation operations are available through `npm run aws:ops -- <command>`. The CLI writes a single JSON object to stdout on success and sends human progress logs to stderr.
+
+```bash
+# Show available commands and defaults
+npm run aws:ops -- --help
+
+# Build and push a tagged ECR image
+npm run aws:ops -- image build-push --tag dry-run-$(git rev-parse --short HEAD)
+
+# Run a temporary dry-run ECS task for one site and wait for completion
+npm run aws:ops -- task run-dry-run --image-uri <imageUri> --site thedynastyba --wait
+
+# Fetch the final task logs
+npm run aws:ops -- task logs --task-id <taskId> --tail 80
+
+# Delete the test tag, then clean recent untagged build artifacts
+npm run aws:ops -- image delete --tag <tag>
+npm run aws:ops -- image cleanup-untagged --since-minutes 15
+```
+
+See [scripts/README.md](scripts/README.md) for command references, environment defaults, and safe cleanup guidance.
 
 ## 🛠️ Development
 
