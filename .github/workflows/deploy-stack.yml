@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       image_uri:
-        description: "Optional: ECR image URI with digest"
-        required: false
+        description: "ECR image URI with digest"
+        required: true
   repository_dispatch:
     types: [deploy-scraper]
 
@@ -20,6 +20,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,37 +36,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Typecheck AWS ops CLI
+        run: npx tsc --noEmit --target esnext --module nodenext --moduleResolution nodenext --strict --types node scripts/aws-ops.ts
+
       - name: Determine image URI
+        id: image
         env:
           INPUT_IMAGE_URI: ${{ github.event.inputs.image_uri }}
           PAYLOAD_IMAGE_URI: ${{ github.event.client_payload.image_uri }}
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGION=us-east-1
-          REPO_NAME="blue-oak-holdings/scraper"
-
           if [ -n "$INPUT_IMAGE_URI" ]; then
             IMAGE_URI="$INPUT_IMAGE_URI"
           elif [ -n "$PAYLOAD_IMAGE_URI" ]; then
             IMAGE_URI="$PAYLOAD_IMAGE_URI"
           else
-            echo "No image_uri provided; fetching latest digest from ECR."
-            DIGEST=$(aws ecr describe-images \
-              --repository-name "$REPO_NAME" \
-              --image-ids imageTag=latest \
-              --query 'imageDetails[0].imageDigest' \
-              --output text)
-            IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME@$DIGEST"
+            echo "Missing required image_uri. Provide workflow_dispatch input or repository_dispatch client_payload.image_uri." >&2
+            exit 1
           fi
 
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
           echo "Using image: $IMAGE_URI"
 
       - name: Deploy CloudFormation
         run: |
-          aws cloudformation deploy \
-            --template-file infra/fargate-task-chromium.yaml \
-            --stack-name blue-oak-holdings-scraper \
-            --capabilities CAPABILITY_IAM \
-            --parameter-overrides \
-              ImageUri=${{ env.IMAGE_URI }}
+          npm --silent run aws:ops -- deploy scheduled --image-uri "${{ steps.image.outputs.image_uri }}" --confirm-production
