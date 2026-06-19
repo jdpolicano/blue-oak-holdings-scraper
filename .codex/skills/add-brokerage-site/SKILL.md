@@ -41,13 +41,14 @@ Keep changes scoped to the new or repaired site:
 ## Validation
 
 Run validation proportionate to the change:
-å
+
 - Always run `npm run build`.
-- Run a focused dry run for the new site. For local validation, use `SCRAPER_SITES=<site> DRY_RUN=true npm run dev` or the repository's single-site helper if present. For AWS/Fargate parity, prefer the AWS ops CLI commands below instead of ad hoc AWS CLI calls.
+- Run a focused dry run for the new site with `npm run scrape:site -- <site>`. Use `npm run scrape:site:debug -- <site>` when verbose logs are needed.
 - Audit listing IDs: check for duplicates within the run, unstable href-derived IDs, tracking params, fragments, relative URL inconsistencies, casing drift, and accidental overlap with existing data when available.
 - Audit pagination completeness: prove listings from page 1 and later pages are captured, prove the tail page is not skipped, and prove human navigation stop conditions cannot loop forever.
 - Use Docker validation when browser/runtime parity is uncertain.
-- Use AWS/Fargate validation when requested or when infrastructure compatibility is specifically in doubt.
+- For new sites, run AWS/Fargate dry-run validation after local validation whenever AWS credentials and Docker are available. Sites can behave differently in Fargate because of anti-bot controls, IP reputation, browser/runtime differences, network egress, DNS, and container resource limits.
+- Use Docker validation when AWS/Fargate validation is blocked and browser/runtime parity is uncertain.
 
 ### AWS Ops CLI
 

@@ -85,6 +85,9 @@ cp config/example.config.json config/local.config.json
 # Local development with dry run
 npm run dev
 
+# Dry-run one site with local config
+npm run scrape:site -- bristolgroup
+
 # Debug mode with verbose logging
 npm run debug
 

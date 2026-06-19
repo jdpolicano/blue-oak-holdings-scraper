@@ -27,6 +27,7 @@ import { NewLeafBrokerage } from "./newleafbrokerage.js";
 import { KensingtonCompany } from "./kensingtoncompany.js";
 import { GottesmanCompany } from "./gottesmancompany.js";
 import { ExitConsultingGroup } from "./exitconsultinggroup.js";
+import { BristolGroup } from "./bristolgroup.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -63,6 +64,7 @@ class Registry {
       KensingtonCompany,
       GottesmanCompany,
       ExitConsultingGroup,
+      BristolGroup,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {

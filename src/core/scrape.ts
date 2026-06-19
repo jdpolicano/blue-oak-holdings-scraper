@@ -27,7 +27,7 @@ interface ScrapeHandleOverrides {
 
 interface ScrapeHandleInternalOverrides {
   sites: BaseApiObject[];
-  browserRunner: BrowserRunner;
+  browserRunner: BrowserRunnerLike;
 }
 
 export type ScrapeHandleOptions = Omit<BrowserRunnerOptions, "sites"> &
@@ -37,6 +37,26 @@ type ScrapeHandleInternalOptions = Omit<BrowserRunnerOptions, "sites"> &
   ScrapeHandleInternalOverrides;
 
 type BrowserSite = BasePageObjectPaginated | BasePageObjectHuman;
+
+interface BrowserRunnerLike {
+  run(): Promise<{ errors: ScrapingError[] }>;
+}
+
+class EmptyBrowserRunner implements BrowserRunnerLike {
+  constructor(private readonly logger: Logger) {}
+
+  async run(): Promise<{ errors: ScrapingError[] }> {
+    this.logger.info(
+      {
+        sites: 0,
+        tasks: 0,
+        pages: 0,
+      },
+      "Skipping browser scrape",
+    );
+    return { errors: [] };
+  }
+}
 
 /**
  * Represents a handle to the browser instance that will run automation.
@@ -50,7 +70,7 @@ export class ScrapeHandle {
   // storage mechanism to save scraped data.
   private storage: Storage;
 
-  private browserRunner: BrowserRunner;
+  private browserRunner: BrowserRunnerLike;
 
   private constructor({
     logger,
@@ -78,11 +98,15 @@ export class ScrapeHandle {
     const apiSites = options.sites.filter(
       (site): site is BaseApiObject => site.siteStrategy === SiteStrategy.Api,
     );
-    const browserRunner = await BrowserRunner.create({
-      ...options,
-      logger: options.logger.child({ component: BrowserRunner.name }),
-      sites: browserSites,
-    });
+    const browserRunner = browserSites.length
+      ? await BrowserRunner.create({
+          ...options,
+          logger: options.logger.child({ component: BrowserRunner.name }),
+          sites: browserSites,
+        })
+      : new EmptyBrowserRunner(
+          options.logger.child({ component: BrowserRunner.name }),
+        );
     return new ScrapeHandle({
       ...options,
       sites: apiSites,

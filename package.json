@@ -10,6 +10,8 @@
     "start": "node dist/index.js",
     "dev": "export DRY_RUN=true && npm run build && npm run start | npx pino-pretty && unset DRY_RUN",
     "debug": "export LOG_LEVEL=debug && npm run dev && unset LOG_LEVEL",
+    "scrape:site": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm run scrape:site -- <site>\" >&2; exit 1; fi; DRY_RUN=true CONFIG_PATH=./config/local.config.json LOG_LEVEL=${LOG_LEVEL:-info} SCRAPER_SITES=\"$1\" node dist/index.js' --",
+    "scrape:site:debug": "LOG_LEVEL=debug npm run scrape:site --",
     "docker-dev-local": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true -e CONFIG_PATH=./config/local.config.json scrapy-brokers-poc",
     "docker-dev": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true scrapy-brokers-poc",
     "docker-debug": "docker build -t scrapy-brokers-poc . && docker run -m 4g --cpus=2 -e DRY_RUN=true -e LOG_LEVEL=debug scrapy-brokers-poc",

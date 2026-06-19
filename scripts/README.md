@@ -1,6 +1,15 @@
 # Scripts
 
-Repository tooling lives under `scripts/`. The main entrypoint is the AWS operations CLI:
+Repository tooling lives under `scripts/`. For focused local validation, use the top-level npm single-site script:
+
+```bash
+npm run scrape:site -- <site>
+npm run scrape:site:debug -- <site>
+```
+
+`scrape:site` runs one site with `DRY_RUN=true`, `CONFIG_PATH=./config/local.config.json`, and `SCRAPER_SITES` set internally from the positional site argument. This is an npm script, not a separate TypeScript CLI.
+
+The main AWS entrypoint is the AWS operations CLI:
 
 ```bash
 npm run aws:ops -- <command> [options]
@@ -61,7 +70,7 @@ Use the digest-based `imageUri` returned by `image build-push` for task runs and
 
 ## Typechecking
 
-`tsconfig.json` only includes application source under `src/`, so typecheck the CLI explicitly after changing scripts:
+`tsconfig.json` only includes application source under `src/`, so typecheck script entrypoints explicitly after changing them:
 
 ```bash
 npx tsc --noEmit --target esnext --module nodenext --moduleResolution nodenext --strict --types node scripts/aws-ops.ts
