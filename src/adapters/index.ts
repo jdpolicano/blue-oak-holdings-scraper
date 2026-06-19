@@ -28,6 +28,11 @@ import { KensingtonCompany } from "./kensingtoncompany.js";
 import { GottesmanCompany } from "./gottesmancompany.js";
 import { ExitConsultingGroup } from "./exitconsultinggroup.js";
 import { BristolGroup } from "./bristolgroup.js";
+import { TheFirmAdv } from "./thefirmadv.js";
+import { JackimWoods } from "./jackimwoods.js";
+import { MetroBusinessAdvisors } from "./metrobusinessadvisors.js";
+import { TheNYBBGroup } from "./thenybbgroup.js";
+import { EarnedExits } from "./earnedexits.js";
 
 type ScrapeConstructor = new () => BaseScrapeObject;
 
@@ -65,6 +70,11 @@ class Registry {
       GottesmanCompany,
       ExitConsultingGroup,
       BristolGroup,
+      TheFirmAdv,
+      JackimWoods,
+      MetroBusinessAdvisors,
+      TheNYBBGroup,
+      EarnedExits,
     ];
     this.entries = new Map();
     for (const siteConstructor of sites) {

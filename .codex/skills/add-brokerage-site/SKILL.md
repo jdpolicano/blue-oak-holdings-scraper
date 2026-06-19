@@ -47,7 +47,7 @@ Run validation proportionate to the change:
 - Audit listing IDs: check for duplicates within the run, unstable href-derived IDs, tracking params, fragments, relative URL inconsistencies, casing drift, and accidental overlap with existing data when available.
 - Audit pagination completeness: prove listings from page 1 and later pages are captured, prove the tail page is not skipped, and prove human navigation stop conditions cannot loop forever.
 - Use Docker validation when browser/runtime parity is uncertain.
-- For new sites, run AWS/Fargate dry-run validation after local validation whenever AWS credentials and Docker are available. Sites can behave differently in Fargate because of anti-bot controls, IP reputation, browser/runtime differences, network egress, DNS, and container resource limits.
+- For new sites, do not run AWS/Fargate validation until `npm run build` and the focused local dry run are clean. After local validation passes, run AWS/Fargate dry-run validation whenever AWS credentials and Docker are available. Sites can behave differently in Fargate because of anti-bot controls, IP reputation, browser/runtime differences, network egress, DNS, and container resource limits.
 - Use Docker validation when AWS/Fargate validation is blocked and browser/runtime parity is uncertain.
 
 ### AWS Ops CLI
