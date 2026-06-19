@@ -48,10 +48,10 @@ jobs:
             exit 1
           fi
 
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          echo "TAG_URI=$TAG_URI" >> $GITHUB_ENV
-          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
-          echo "tag_uri=$TAG_URI" >> $GITHUB_OUTPUT
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+          echo "TAG_URI=$TAG_URI" >> "$GITHUB_ENV"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "tag_uri=$TAG_URI" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$BUILD_OUTPUT"
 
       - name: Trigger deployment (optional)
